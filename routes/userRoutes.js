@@ -53,10 +53,11 @@ router.put('/stats', protect, async (req, res) => {
         const { questsCompleted, currentStreak } = req.body;
         const { uid: tokenUid } = req.user;
 
-        const updates = {};
         if (questsCompleted !== undefined) updates['stats.questsCompleted'] = questsCompleted;
         if (currentStreak !== undefined) updates['stats.currentStreak'] = currentStreak;
         updates['stats.lastLoginDate'] = new Date();
+
+        console.log(`[SYNC] Updating stats for ${tokenUid}:`, updates);
 
         const user = await User.findOneAndUpdate(
             { firebaseUid: tokenUid },
@@ -66,6 +67,25 @@ router.put('/stats', protect, async (req, res) => {
 
         res.status(200).json(user);
 
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @desc    Get user data (including achievements/stats)
+// @route   GET /api/user
+// @access  Private
+router.get('/', protect, async (req, res) => {
+    try {
+        const { uid: tokenUid } = req.user;
+        const user = await User.findOne({ firebaseUid: tokenUid });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json(user);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
