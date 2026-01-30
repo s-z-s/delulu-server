@@ -30,9 +30,11 @@ const UserSchema = new mongoose.Schema({
     }],
     stats: {
         questsCompleted: { type: Number, default: 0 },
+        sideQuestsCompleted: { type: Number, default: 0 },
         currentStreak: { type: Number, default: 0 },
         lastLoginDate: { type: Date },
-        totalDaysLogged: { type: Number, default: 0 }
+        totalDaysLogged: { type: Number, default: 0 },
+        loginHistory: [{ type: Date }] // New: Track specific dates for complex streaks
     }
 }, {
     timestamps: true,

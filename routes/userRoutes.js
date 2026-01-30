@@ -52,8 +52,10 @@ router.put('/stats', protect, async (req, res) => {
     try {
         const { questsCompleted, currentStreak } = req.body;
         const { uid: tokenUid } = req.user;
+        const updates = {}; // FIX: Initialize variable
 
         if (questsCompleted !== undefined) updates['stats.questsCompleted'] = questsCompleted;
+        if (req.body.sideQuestsCompleted !== undefined) updates['stats.sideQuestsCompleted'] = req.body.sideQuestsCompleted; // New Field
         if (currentStreak !== undefined) updates['stats.currentStreak'] = currentStreak;
         updates['stats.lastLoginDate'] = new Date();
 
@@ -83,6 +85,59 @@ router.get('/', protect, async (req, res) => {
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @desc    Record daily login (Heartbeat)
+// @route   POST /api/user/heartbeat
+// @access  Private
+router.post('/heartbeat', protect, async (req, res) => {
+    try {
+        const { uid: tokenUid } = req.user;
+        const user = await User.findOne({ firebaseUid: tokenUid });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to start of day
+
+        // Check if today is already logged
+        const lastLogin = user.stats.lastLoginDate ? new Date(user.stats.lastLoginDate) : null;
+        let isNewDay = true;
+
+        if (lastLogin) {
+            const lastLoginNormalized = new Date(lastLogin);
+            lastLoginNormalized.setHours(0, 0, 0, 0);
+            if (lastLoginNormalized.getTime() === today.getTime()) {
+                isNewDay = false;
+            }
+        }
+
+        if (isNewDay) {
+            user.stats.lastLoginDate = new Date();
+            user.stats.totalDaysLogged += 1;
+            user.stats.loginHistory.push(new Date());
+
+            // Simple Streak Logic (Consecutive Days)
+            // If last login was yesterday, increment. Else reset to 1.
+            // (Skipping detailed streak recalc here, relying on simple check for now or if user missed a day)
+            // For complex streaks, we use the history array client-side or calc here.
+            // Let's keep server logic simple: Record the date.
+
+            // Cap history to 365 days to save space
+            if (user.stats.loginHistory.length > 365) {
+                user.stats.loginHistory.shift(); // Remove oldest
+            }
+
+            await user.save();
         }
 
         res.status(200).json(user);
