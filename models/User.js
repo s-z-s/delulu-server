@@ -34,7 +34,14 @@ const UserSchema = new mongoose.Schema({
         currentStreak: { type: Number, default: 0 },
         lastLoginDate: { type: Date },
         totalDaysLogged: { type: Number, default: 0 },
-        loginHistory: [{ type: Date }] // New: Track specific dates for complex streaks
+        loginHistory: [{ type: Date }], // New: Track specific dates for complex streaks
+        // New Habit Stats
+        sideQuestsCreated: { type: Number, default: 0 },
+        maxLogsInOneQuest: { type: Number, default: 0 },
+
+        // ToDo Stats
+        tasksCreated: { type: Number, default: 0 },
+        tasksCompleted: { type: Number, default: 0 }
     }
 }, {
     timestamps: true,

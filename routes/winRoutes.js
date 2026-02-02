@@ -92,7 +92,7 @@ router.post('/', protect, async (req, res) => {
     }
 });
 
-// @desc    Get user wins (Side Quests)
+// @desc    Get user wins (Little Wins / Side Quests)
 // @route   GET /api/wins
 // @access  Private
 router.get('/', protect, async (req, res) => {

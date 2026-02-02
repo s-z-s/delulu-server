@@ -11,7 +11,7 @@ const WinSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['mini', 'major', 'side_quest'],
+        enum: ['mini', 'major', 'side_quest', 'little_win'],
         default: 'mini'
     },
     hypeComment: {
