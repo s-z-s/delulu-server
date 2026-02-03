@@ -12,7 +12,8 @@ const BlueprintSchema = new mongoose.Schema({
     },
     quests: [{
         title: { type: String, required: true },
-        description: { type: String }, // New field
+        description: { type: String },
+        checklist: [{ type: String }], // New Checklist
         duration: { type: Number, default: 15 },
         isCompleted: { type: Boolean, default: false }
     }],

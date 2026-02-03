@@ -6,6 +6,29 @@ const User = require('../models/User');
 // @desc    Sync user data from Firebase to MongoDB
 // @route   POST /api/auth/sync
 // @access  Private (Bearer token required)
+
+const Sector = require('../models/Sector');
+
+// Helper to create default sectors
+async function createDefaultSectors(uid) {
+    const existingCount = await Sector.countDocuments({ firebaseUid: uid });
+    if (existingCount === 0) {
+        const defaults = [
+            { title: 'Body', color: '0xFFFF7043' },     // Vibrant Orange
+            { title: 'Soul', color: '0xFF9575CD' },     // Deep Purple
+            { title: 'Friends', color: '0xFF26C6DA' },  // Cyan
+            { title: 'Romance', color: '0xFFE57373' },  // Soft Red
+            { title: 'Family', color: '0xFF4FC3F7' },   // Light Blue
+            { title: 'Mind', color: '0xFF81C784' },     // Green
+            { title: 'Money', color: '0xFFFFD54F' },    // Amber
+            { title: 'Growth', color: '0xFFF06292' }    // Pink
+        ];
+
+        await Sector.insertMany(defaults.map(s => ({ ...s, firebaseUid: uid })));
+    }
+}
+
+// Attach to sync logic
 router.post('/sync', protect, async (req, res) => {
     try {
         // Extract fields from body (Client sends source of truth for first sync)
@@ -28,6 +51,9 @@ router.post('/sync', protect, async (req, res) => {
             },
             { new: true, upsert: true }
         );
+
+        // Ensure default sectors exist
+        await createDefaultSectors(tokenUid);
 
         res.status(200).json(user);
     } catch (error) {

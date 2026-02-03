@@ -42,6 +42,13 @@ const UserSchema = new mongoose.Schema({
         // ToDo Stats
         tasksCreated: { type: Number, default: 0 },
         tasksCompleted: { type: Number, default: 0 }
+    },
+    // Persistent Quest State
+    currentQuest: {
+        title: { type: String },
+        status: { type: String, enum: ['idle', 'in_progress'], default: 'idle' },
+        startedAt: { type: Date },
+        completedChecklistIndices: [{ type: Number }]
     }
 }, {
     timestamps: true,

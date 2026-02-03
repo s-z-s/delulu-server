@@ -13,6 +13,15 @@ const client = new Cerebras({
 function parseAIResponse(text) {
     let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
+    // Check for obvious refusals (Safety guard)
+    const lower = cleanText.toLowerCase();
+    if (lower.includes("cannot help") || lower.includes("unable to generate") || lower.includes("sorry")) {
+        // If it looks like a refusal and NOT JSON (no brackets), throw specific error
+        if (!cleanText.includes('[')) {
+            throw new Error("SAFETY_REFUSAL");
+        }
+    }
+
     // Attempt 1: Direct Parse
     try {
         const firstBracket = cleanText.indexOf('[');
@@ -40,6 +49,9 @@ function parseAIResponse(text) {
     } catch (e) {
         console.error("JSON Repair Failed:", e);
         console.error("Raw Text:", text);
+        if (text.toLowerCase().includes("sorry") || text.toLowerCase().includes("cannot")) {
+            throw new Error("SAFETY_REFUSAL");
+        }
         throw new Error("Failed to parse AI response as JSON");
     }
 }
@@ -111,17 +123,17 @@ router.post('/generate', async (req, res) => {
     }
 
     const systemMessage = `
-    You are the Delulu Coach (Gabby Beckford). Your philosophy is that 'The Room Is Empty'. 
-    When a user hesitates, remind them that statistically, nobody else applied. 
-    Use the phrase 'Brick by Brick'.
+    You are an expert productivity coach. Your goal is to break down big dreams into simple, concrete, and highly actionable steps.
+    Use clear, direct language. Avoid marketing jargon, slang, or overly "witty" phrasing. Focus on clarity and utility.
     
     Output Format: Return EXACTLY a Valid JSON Array of objects. No markdown formatting.
     Each object must have:
-    - "title": (string) Short, punchy, 3-5 words max. Strong verbs.
-    - "description": (string) 1-2 short sentences on HOW to do it. Practical advice. Sassy tone.
+    - "title": (string) Clear and descriptive title (3-6 words). Example: "Research Market Competitors" instead of "Scope out the Haters".
+    - "description": (string) 1-2 sentences explaining exactly what to do and why. Simple, professional, encouraging tone.
+    - "checklist": (array of strings) 3-5 specific, small actions to complete the quest. Start with verbs. Be extremely practical.
     - "duration": (integer) A realistic duration in MINUTES for this specific task (e.g., 15, 30, 45, 60, 90). 
-      - Simple tasks (e.g., sending an email) should be 15-30 mins.
-      - Deep work (e.g., drafting a chapter) should be 45-90 mins.
+      - Simple tasks should be 15-30 mins.
+      - Focused work should be 45-90 mins.
     `;
 
     const userMessage = `
@@ -161,6 +173,7 @@ router.post('/generate', async (req, res) => {
             return {
                 title: q.title,
                 description: q.description || "Just do it.",
+                checklist: q.checklist || [], // Capture checklist
                 duration: dur,
                 isCompleted: false
             };
@@ -197,6 +210,15 @@ router.post('/generate', async (req, res) => {
         });
     } catch (error) {
         console.error('Blueprint Generation Error:', error);
+
+        if (error.message === "SAFETY_REFUSAL") {
+            return res.status(400).json({
+                success: false,
+                message: 'SAFETY_REFUSAL',
+                error: 'The AI cannot generate a blueprint for this dream due to safety guidelines.'
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'Failed to generate blueprint',

@@ -7,13 +7,42 @@ const { protect } = require('../middleware/authMiddleware');
 
 // === SECTORS ===
 
-// @desc    Get all sectors
+// @desc    Get all sectors with task counts
 // @route   GET /api/todos/sectors
 router.get('/sectors', protect, async (req, res) => {
     try {
-        const sectors = await Sector.find({ firebaseUid: req.user.uid }).sort({ createdAt: 1 });
+        const sectors = await Sector.aggregate([
+            { $match: { firebaseUid: req.user.uid } },
+            {
+                $lookup: {
+                    from: 'tasks',
+                    let: { sectorId: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$sectorId', '$$sectorId'] },
+                                        { $eq: ['$isCompleted', false] } // Only count active tasks? Or all? User said "fill up slowly as user adds tasks". Let's count ALL.
+                                    ]
+                                }
+                            }
+                        },
+                        { $count: 'count' }
+                    ],
+                    as: 'taskCount'
+                }
+            },
+            {
+                $addFields: {
+                    taskCount: { $ifNull: [{ $arrayElemAt: ['$taskCount.count', 0] }, 0] }
+                }
+            },
+            { $sort: { createdAt: 1 } }
+        ]);
         res.json(sectors);
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 });
