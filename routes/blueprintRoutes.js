@@ -9,6 +9,25 @@ const client = new Cerebras({
     apiKey: process.env.CEREBRAS_API_KEY
 });
 
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure Multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = 'uploads/';
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath);
+        }
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname)); // Unique name
+    }
+});
+const upload = multer({ storage: storage });
+
 // Helper: Clean and Parse JSON from AI response
 function parseAIResponse(text) {
     let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -266,8 +285,42 @@ router.post('/save', protect, async (req, res) => {
     }
 });
 
-// @desc    Mark a quest as completed
-// @route   PATCH /api/blueprint/complete
+// @access  Private
+// @desc    Complete a quest with optional photo evidence
+router.post('/complete-with-evidence', protect, upload.single('evidence'), async (req, res) => {
+    const { questTitle, blueprintId } = req.body;
+    // req.file contains the uploaded file info
+
+    try {
+        let blueprint;
+        if (blueprintId) {
+            blueprint = await Blueprint.findOne({ _id: blueprintId, firebaseUid: req.user.uid });
+        } else {
+            // Fallback to most recent (legacy support)
+            blueprint = await Blueprint.findOne({ firebaseUid: req.user.uid }).sort({ updatedAt: -1 });
+        }
+
+        if (!blueprint) return res.status(404).json({ message: "Blueprint not found" });
+
+        const quest = blueprint.quests.find(q => q.title === questTitle);
+        if (!quest) return res.status(404).json({ message: "Quest not found" });
+
+        quest.isCompleted = true;
+        if (req.file) {
+            quest.evidenceUrl = req.file.filename;
+        }
+
+        await blueprint.save();
+        res.json(blueprint);
+
+    } catch (error) {
+        console.error("Complete Evidence Error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// @desc    Mark a quest as complete (Legacy/No-Photo)
+// @access  Private   PATCH /api/blueprint/complete
 // @access  Private
 router.patch('/complete', protect, async (req, res) => {
     const { questTitle, blueprintId } = req.body;
@@ -308,6 +361,41 @@ router.patch('/complete', protect, async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @desc    Generate Hype for Quest Completion
+// @route   POST /api/blueprint/hype
+// @access  Private
+router.post('/hype', protect, async (req, res) => {
+    const { questTitle } = req.body;
+
+    if (!questTitle) return res.status(400).json({ message: "Quest title required" });
+
+    const systemMessage = `
+    You are the Delulu Coach (Gabby Beckford). 
+    Your user just completed the quest: "${questTitle}".
+    
+    Write a short, sassy, high-energy congratulatory message (1-2 sentences).
+    Use emojis. Be dramatic. Remind them they are the main character.
+    Examples:
+    "The room is empty and you just filled it with your brilliance! 💅 ✨"
+    "Brick by brick? Honey, you just laid the whole foundation. 🏗️ 🔥"
+    `;
+
+    try {
+        const completion = await client.chat.completions.create({
+            messages: [{ role: 'system', content: systemMessage }],
+            model: 'gpt-oss-120b', // Or 'llama3.1-70b'
+            temperature: 0.8,
+            max_completion_tokens: 150
+        });
+
+        const hypeText = completion.choices[0].message.content.trim();
+        res.json({ hype: hypeText });
+    } catch (error) {
+        console.error("Hype Gen Error:", error);
+        res.json({ hype: "You crushed it! The universe is taking notes! ✨ 🚀" }); // Fallback
     }
 });
 

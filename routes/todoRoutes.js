@@ -21,23 +21,28 @@ router.get('/sectors', protect, async (req, res) => {
                         {
                             $match: {
                                 $expr: {
-                                    $and: [
-                                        { $eq: ['$sectorId', '$$sectorId'] },
-                                        { $eq: ['$isCompleted', false] } // Only count active tasks? Or all? User said "fill up slowly as user adds tasks". Let's count ALL.
-                                    ]
+                                    $eq: ['$sectorId', '$$sectorId']
                                 }
                             }
                         },
-                        { $count: 'count' }
+                        {
+                            $group: {
+                                _id: null,
+                                active: { $sum: { $cond: [{ $ne: ['$isCompleted', true] }, 1, 0] } },
+                                completed: { $sum: { $cond: [{ $eq: ['$isCompleted', true] }, 1, 0] } }
+                            }
+                        }
                     ],
-                    as: 'taskCount'
+                    as: 'taskCounts'
                 }
             },
             {
                 $addFields: {
-                    taskCount: { $ifNull: [{ $arrayElemAt: ['$taskCount.count', 0] }, 0] }
+                    activeTaskCount: { $ifNull: [{ $arrayElemAt: ['$taskCounts.active', 0] }, 0] },
+                    completedTaskCount: { $ifNull: [{ $arrayElemAt: ['$taskCounts.completed', 0] }, 0] }
                 }
             },
+            { $project: { taskCounts: 0 } },
             { $sort: { createdAt: 1 } }
         ]);
         res.json(sectors);

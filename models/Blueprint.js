@@ -15,7 +15,8 @@ const BlueprintSchema = new mongoose.Schema({
         description: { type: String },
         checklist: [{ type: String }], // New Checklist
         duration: { type: Number, default: 15 },
-        isCompleted: { type: Boolean, default: false }
+        isCompleted: { type: Boolean, default: false },
+        evidenceUrl: { type: String } // URL to uploaded photo
     }],
     updatedAt: {
         type: Date,

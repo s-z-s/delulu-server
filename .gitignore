@@ -14,3 +14,6 @@ client/dist/
 # OS files
 .DS_Store
 service-account.json
+
+# Uploads
+uploads/
