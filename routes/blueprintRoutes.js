@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Cerebras = require('@cerebras/cerebras_cloud_sdk');
+const Cerebras = require('@cerebras/cerebras_cloud_sdk'); // Use Cerebras
 const Blueprint = require('../models/Blueprint');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -43,44 +43,38 @@ function parseAIResponse(text) {
 
     // Attempt 1: Direct Parse
     try {
-        const firstBracket = cleanText.indexOf('[');
-        const lastBracket = cleanText.lastIndexOf(']');
-        if (firstBracket !== -1 && lastBracket !== -1) {
-            const candidate = cleanText.substring(firstBracket, lastBracket + 1);
-            return JSON.parse(candidate);
-        }
+        return JSON.parse(cleanText);
     } catch (e) {
-        // Continue to repair
+        // Continue to fallback
     }
 
-    // Attempt 2: Repair Truncated JSON
-    try {
-        const firstBracket = cleanText.indexOf('[');
-        if (firstBracket === -1) throw new Error("No JSON array start found");
-
-        // Find the last complete object ending '}'
-        const lastClosingBrace = cleanText.lastIndexOf('}');
-        if (lastClosingBrace === -1) throw new Error("No complete objects found");
-
-        // Construct valid array
-        const repairedText = cleanText.substring(firstBracket, lastClosingBrace + 1) + ']';
-        return JSON.parse(repairedText);
-    } catch (e) {
-        console.error("JSON Repair Failed:", e);
-        console.error("Raw Text:", text);
-        if (text.toLowerCase().includes("sorry") || text.toLowerCase().includes("cannot")) {
-            throw new Error("SAFETY_REFUSAL");
+    // Fallback: Aggressive Regex
+    const match = cleanText.match(/\[.*\]/s);
+    if (match) {
+        try {
+            return JSON.parse(match[0]);
+        } catch (e) {
+            throw new Error("Failed to parse AI JSON");
         }
-        throw new Error("Failed to parse AI response as JSON");
     }
+
+    throw new Error("No JSON array found in response");
 }
 
-// @desc    Get all blueprints for current user
+// @desc    Get all blueprints for user
 // @route   GET /api/blueprint/list
-// @access  Private
 router.get('/list', protect, async (req, res) => {
     try {
-        const blueprints = await Blueprint.find({ firebaseUid: req.user.uid }).sort({ updatedAt: -1 });
+        console.log(`[Blueprint] List Request for User: ${req.user.uid}`);
+        const blueprints = await Blueprint.find({ firebaseUid: req.user.uid })
+            .sort({ updatedAt: -1 })
+            .lean(); // Convert to Plain JS Object
+
+        console.log(`[Blueprint] Found ${blueprints.length} blueprints.`);
+        blueprints.forEach((b, i) => {
+            console.log(`   [${i}] ID: ${b._id}, Quests: ${b.quests?.length ?? 0}, Updated: ${b.updatedAt}`);
+        });
+
         res.status(200).json(blueprints);
     } catch (error) {
         console.error(error);
@@ -88,15 +82,12 @@ router.get('/list', protect, async (req, res) => {
     }
 });
 
-// @desc    Get latest blueprint (Compat)
-// @route   GET /api/blueprint
-// @access  Private
-router.get('/', protect, async (req, res) => {
+// @desc    Get specific blueprint
+// @route   GET /api/blueprint/:id
+router.get('/:id', protect, async (req, res) => {
     try {
-        const blueprint = await Blueprint.findOne({ firebaseUid: req.user.uid }).sort({ updatedAt: -1 });
-        if (!blueprint) {
-            return res.status(404).json({ message: 'No blueprint found' });
-        }
+        const blueprint = await Blueprint.findOne({ _id: req.params.id, firebaseUid: req.user.uid });
+        if (!blueprint) return res.status(404).json({ message: 'Blueprint not found' });
         res.status(200).json(blueprint);
     } catch (error) {
         console.error(error);
@@ -133,11 +124,11 @@ router.post('/generate', async (req, res) => {
     if (timeline) {
         const lowerT = timeline.toLowerCase();
         if (lowerT.includes('year') || lowerT.includes('12 months')) {
-            questCount = 60;
+            questCount = 30; // Max Limit for fast Cerebras 8b model
         } else if (lowerT.includes('6 months')) {
-            questCount = 30;
+            questCount = 20;
         } else if (lowerT.includes('3 months')) {
-            questCount = 15;
+            questCount = 10;
         }
     }
 
@@ -149,31 +140,26 @@ router.post('/generate', async (req, res) => {
     Each object must have:
     - "title": (string) Clear and descriptive title (3-6 words). Example: "Research Market Competitors" instead of "Scope out the Haters".
     - "description": (string) 1-2 sentences explaining exactly what to do and why. Simple, professional, encouraging tone.
-    - "checklist": (array of strings) 3-5 specific, small actions to complete the quest. Start with verbs. Be extremely practical.
-    - "duration": (integer) A realistic duration in MINUTES for this specific task (e.g., 15, 30, 45, 60, 90). 
-      - Simple tasks should be 15-30 mins.
-      - Focused work should be 45-90 mins.
+    - "duration": (integer) A realistic duration in MINUTES (e.g., 15, 30, 45, 60).
     `;
 
     const userMessage = `
-    Task: Convert the user's dream into ${questCount} immediate micro-actions (Side Quests).
+    Task: Convert the user's dream into ${questCount} sequential levels (Quests).
     The user wants to achieve this in: "${timeline || 'Unknown timeframe'}".
     The user's current progress is: "${progress || 'Just getting started'}".
-    - If they are advanced, give them harder quests.
-    - If they are just starting, give them foundational quests.
     
     Dream: "${dream}"
     `;
 
     try {
-        console.log(`[Blueprint] Attempting generation with Cerebras (gpt-oss-120b) for: ${dream.substring(0, 20)}...`);
+        console.log(`[Blueprint] Attempting generation (Cerebras: llama3.1-8b) for: ${dream.substring(0, 20)}...`);
 
         const completion = await client.chat.completions.create({
             messages: [
                 { role: 'system', content: systemMessage },
                 { role: 'user', content: userMessage }
             ],
-            model: 'gpt-oss-120b',
+            model: 'llama3.1-8b',
             temperature: 0.7,
             max_completion_tokens: 4000
         });
@@ -181,7 +167,6 @@ router.post('/generate', async (req, res) => {
         const rawText = completion.choices[0].message.content;
         const questsData = parseAIResponse(rawText);
 
-        // Map to schema format (add isCompleted: false)
         const quests = questsData.map(q => {
             let dur = 15;
             if (typeof q.duration === 'number') dur = q.duration;
@@ -192,40 +177,16 @@ router.post('/generate', async (req, res) => {
             return {
                 title: q.title,
                 description: q.description || "Just do it.",
-                checklist: q.checklist || [], // Capture checklist
+                checklist: [], // Empty initially
                 duration: dur,
                 isCompleted: false
             };
         });
 
-        // IF authenticated, save to DB
-        if (userUid) {
-            if (req.body.saveAsNew) {
-                // Create new journey
-                await Blueprint.create({
-                    firebaseUid: userUid,
-                    dream,
-                    quests,
-                    updatedAt: Date.now()
-                });
-            } else {
-                // Update existing or create if none (Onboarding flow)
-                await Blueprint.findOneAndUpdate(
-                    { firebaseUid: userUid },
-                    {
-                        dream,
-                        quests,
-                        updatedAt: Date.now()
-                    },
-                    { new: true, upsert: true, sort: { updatedAt: -1 } }
-                );
-            }
-        }
-
         res.status(200).json({
             success: true,
-            data: quests, // Return the quests list
-            saved: !!userUid
+            data: quests,
+            saved: false
         });
     } catch (error) {
         console.error('Blueprint Generation Error:', error);
@@ -234,7 +195,7 @@ router.post('/generate', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'SAFETY_REFUSAL',
-                error: 'The AI cannot generate a blueprint for this dream due to safety guidelines.'
+                error: 'Safety refusal.'
             });
         }
 
@@ -246,19 +207,74 @@ router.post('/generate', async (req, res) => {
     }
 });
 
+// @desc    Generate Tasks for a specific Quest
+// @route   POST /api/blueprint/generate-tasks
+// @access  Private
+router.post('/generate-tasks', protect, async (req, res) => {
+    const { questTitle, questDescription, dream } = req.body;
+
+    const systemMessage = `
+    You are an expert productivity coach.
+    Task: Generate a checklist of 3-5 specific, micro-actions for a user's quest.
+    Output: JSON Array of strings. e.g. ["Buy domain name", "Install WordPress", "Choose theme"]
+    `;
+
+    const userMessage = `
+    Dream: ${dream}
+    Quest: ${questTitle}
+    Context: ${questDescription}
+    `;
+
+    try {
+        const completion = await client.chat.completions.create({
+            messages: [
+                { role: 'system', content: systemMessage },
+                { role: 'user', content: userMessage }
+            ],
+            model: 'llama3.1-8b',
+            temperature: 0.7,
+            max_completion_tokens: 1000
+        });
+
+        const rawText = completion.choices[0].message.content;
+
+        // Parse array of strings
+        let checklist = [];
+        try {
+            checklist = parseAIResponse(rawText);
+            // Handle if it returned objects instead of strings
+            if (checklist.length > 0 && typeof checklist[0] !== 'string') {
+                checklist = checklist.map(i => i.task || i.action || JSON.stringify(i));
+            }
+        } catch (e) {
+            checklist = ["Just do it", "Mark as done"];
+        }
+
+        res.json({ checklist });
+    } catch (error) {
+        console.error("Task Gen Error:", error);
+        res.status(500).json({ message: "Failed to generate tasks" });
+    }
+});
+
 // @desc    Save existing blueprint (e.g. after registration)
 // @route   POST /api/blueprint/save
 // @access  Private
 router.post('/save', protect, async (req, res) => {
     const { dream, quests, saveAsNew } = req.body;
 
+    console.log(`[Blueprint] Save Request. User: ${req.user.uid}`);
+    console.log(`[Blueprint] Data - Dream: ${dream}, Quests: ${quests?.length}, New: ${saveAsNew}`);
+
     if (!quests || !Array.isArray(quests)) {
+        console.error("[Blueprint] Save Failed: Quests is not an array");
         return res.status(400).json({ message: 'Quests array is required' });
     }
 
     try {
         let blueprint;
         if (saveAsNew) {
+            console.log("[Blueprint] Creating NEW blueprint...");
             blueprint = await Blueprint.create({
                 firebaseUid: req.user.uid,
                 dream: dream || "My Delusional Dream",
@@ -267,6 +283,7 @@ router.post('/save', protect, async (req, res) => {
             });
         } else {
             // Update latest or create if none
+            console.log("[Blueprint] Updating EXISTING blueprint...");
             blueprint = await Blueprint.findOneAndUpdate(
                 { firebaseUid: req.user.uid },
                 {
@@ -274,14 +291,20 @@ router.post('/save', protect, async (req, res) => {
                     quests,
                     updatedAt: Date.now()
                 },
-                { new: true, upsert: true, sort: { updatedAt: -1 } }
+                {
+                    new: true,
+                    upsert: true,
+                    sort: { updatedAt: -1 },
+                    runValidators: true // CRITICAL: Enforce schema validation on update
+                }
             );
         }
 
+        console.log(`[Blueprint] Saved Successfully. ID: ${blueprint._id}, Quests Saved: ${blueprint.quests?.length}`);
         res.status(200).json({ success: true, data: blueprint });
     } catch (error) {
         console.error('Blueprint Save Error:', error);
-        res.status(500).json({ message: 'Failed to save blueprint' });
+        res.status(500).json({ message: 'Failed to save blueprint: ' + error.message });
     }
 });
 
@@ -385,8 +408,11 @@ router.post('/hype', protect, async (req, res) => {
 
     try {
         const completion = await client.chat.completions.create({
-            messages: [{ role: 'system', content: systemMessage }],
-            model: 'gpt-oss-120b', // Or 'llama3.1-70b'
+            messages: [
+                { role: 'system', content: systemMessage },
+                { role: 'user', content: userMessage }
+            ],
+            model: 'llama3.1-8b',
             temperature: 0.8,
             max_completion_tokens: 150
         });

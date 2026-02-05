@@ -8,12 +8,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Models verified via list_models.js script
 const MODELS = [
-    'gemini-2.5-flash-lite', // Try lite first for speed/stability
-    'gemini-flash-latest',   // Generic alias that usually works
-    'gemini-2.0-flash',      // Stable previous version
-    'gemini-2.0-flash-lite',
-    'gemini-2.5-flash',      // Available but was timing out, move lower
-    'gemini-1.5-flash-001'   // Keep as legacy backup
+    'gemini-2.5-flash',       // Newest Stable
+    'gemini-2.5-flash-lite',  // Newest Lite
+    'gemini-flash-latest',    // Classic Stable Alias
+    'gemini-2.0-flash-lite',  // Available Lite
+    'gemini-2.0-flash-lite-001'
 ];
 
 // Helper wrapper to timeout promises
