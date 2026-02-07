@@ -5,12 +5,20 @@ const Task = require('../models/Task');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
 
-// === SECTORS ===
-
-// @desc    Get all sectors with task counts
-// @route   GET /api/todos/sectors
+// @desc    Get all sectors with task counts (with optional date filtering)
+// @route   GET /api/todos/sectors?from=ISO_DATE&to=ISO_DATE
 router.get('/sectors', protect, async (req, res) => {
     try {
+        const { from, to } = req.query;
+
+        // Build date filter for completed tasks
+        let dateFilter = {};
+        if (from || to) {
+            dateFilter = {};
+            if (from) dateFilter.$gte = new Date(from);
+            if (to) dateFilter.$lte = new Date(to);
+        }
+
         const sectors = await Sector.aggregate([
             { $match: { firebaseUid: req.user.uid } },
             {
@@ -28,8 +36,25 @@ router.get('/sectors', protect, async (req, res) => {
                         {
                             $group: {
                                 _id: null,
+                                // Active tasks: always count all incomplete tasks
                                 active: { $sum: { $cond: [{ $ne: ['$isCompleted', true] }, 1, 0] } },
-                                completed: { $sum: { $cond: [{ $eq: ['$isCompleted', true] }, 1, 0] } }
+                                // Completed tasks: filter by date if provided
+                                completed: {
+                                    $sum: {
+                                        $cond: [
+                                            {
+                                                $and: [
+                                                    { $eq: ['$isCompleted', true] },
+                                                    // If date range specified, check completedAt
+                                                    ...(from ? [{ $gte: ['$completedAt', new Date(from)] }] : []),
+                                                    ...(to ? [{ $lte: ['$completedAt', new Date(to)] }] : [])
+                                                ]
+                                            },
+                                            1,
+                                            0
+                                        ]
+                                    }
+                                }
                             }
                         }
                     ],
@@ -170,6 +195,50 @@ router.put('/tasks/:id/reminder', protect, async (req, res) => {
     } catch (error) {
         console.error('Error setting reminder:', error);
         res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @desc    Analyze Wheel of Life data
+// @route   POST /api/todos/analyze
+router.post('/analyze', protect, async (req, res) => {
+    try {
+        const { sectors } = req.body;
+        const Cerebras = require('@cerebras/cerebras_cloud_sdk');
+
+        const client = new Cerebras({
+            apiKey: process.env.CEREBRAS_API_KEY,
+        });
+
+        const sectorSummary = sectors.map(s => {
+            const active = s.activeTaskCount || 0;
+            const completed = s.completedTaskCount || 0;
+            const total = active + completed;
+            return `${s.title}: ${completed}/${total} completed (${active} active)`;
+        }).join('\n');
+
+        const systemPrompt = `
+        You are Gabby Beckford (The Delulu Coach). You analyze people's "Wheel of Life" (balance of life areas).
+        The user will provide their completion stats for different life areas.
+        Your job is to provide ONE sassy, high-energy, and insightful "Main Character" suggestion (max 50 words).
+        If one area is lagging, call it out lovingly. If they are killing it, celebrate but keep them humble.
+        Be specific, motivational, and a bit "delulu".
+        `;
+
+        const userPrompt = `Here is my current life balance:\n${sectorSummary}\n\nWhat's your "Delulu Coach" take?`;
+
+        const response = await client.chat.completions.create({
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            model: 'llama3.3-70b',
+            max_completion_tokens: 150,
+        });
+
+        res.json({ suggestion: response.choices[0].message.content });
+    } catch (error) {
+        console.error('AI Analysis Error:', error);
+        res.status(500).json({ message: 'AI Analysis failed' });
     }
 });
 

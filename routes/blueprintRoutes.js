@@ -132,19 +132,40 @@ router.post('/generate', async (req, res) => {
         }
     }
 
+    // 5 Levels Total. Calculate quests PER level dynamically.
+    const numLevels = 5;
+    const questsPerLevel = Math.ceil(questCount / numLevels);
+    const totalItems = (questsPerLevel * numLevels) + numLevels; // Quests + Rewards
+
     const systemMessage = `
     You are an expert productivity coach. Your goal is to break down big dreams into simple, concrete, and highly actionable steps.
     Use clear, direct language. Avoid marketing jargon, slang, or overly "witty" phrasing. Focus on clarity and utility.
     
     Output Format: Return EXACTLY a Valid JSON Array of objects. No markdown formatting.
-    Each object must have:
-    - "title": (string) Clear and descriptive title (3-6 words). Example: "Research Market Competitors" instead of "Scope out the Haters".
-    - "description": (string) 1-2 sentences explaining exactly what to do and why. Simple, professional, encouraging tone.
-    - "duration": (integer) A realistic duration in MINUTES (e.g., 15, 30, 45, 60).
+    
+    CRITICAL STRUCTURE INSTRUCTIONS:
+    - Total Levels: ${numLevels}
+    - Quests per Level: ${questsPerLevel}
+    - Total Items (Quests + Rewards): ${totalItems}
+    
+    Structure: For each level, generate ${questsPerLevel} quests followed by 1 reward.
+    Pattern: [Q1, Q2, ..., Q${questsPerLevel}, R1], [Q${questsPerLevel + 1}, ..., R2], ...
+    
+    Object Format (Quest):
+    - "title": (string) Clear and descriptive title (3-6 words).
+    - "description": (string) 1-2 sentences explaining exactly what to do.
+    - "duration": (integer) Minutes (e.g., 15, 30).
+    - "type": "quest"
+    
+    Object Format (Reward):
+    - "title": (string) "Level [N] Reward"
+    - "description": (string) A fun, rejuvenating, or tailored reward idea based on the dream context.
+    - "duration": 0
+    - "type": "reward"
     `;
 
     const userMessage = `
-    Task: Convert the user's dream into ${questCount} sequential levels (Quests).
+    Task: Convert the user's dream into ${questCount} quests across ${numLevels} levels.
     The user wants to achieve this in: "${timeline || 'Unknown timeframe'}".
     The user's current progress is: "${progress || 'Just getting started'}".
     
@@ -165,27 +186,75 @@ router.post('/generate', async (req, res) => {
         });
 
         const rawText = completion.choices[0].message.content;
-        const questsData = parseAIResponse(rawText);
+        console.log(`[Blueprint DEBUG] Raw AI Response:\n${rawText.substring(0, 500)}...`);
 
-        const quests = questsData.map(q => {
-            let dur = 15;
-            if (typeof q.duration === 'number') dur = q.duration;
-            else if (typeof q.duration === 'string') {
-                const match = q.duration.match(/\d+/);
-                dur = match ? parseInt(match[0], 10) : 15;
+        const questsData = parseAIResponse(rawText);
+        console.log(`[Blueprint DEBUG] Parsed questsData count: ${questsData.length}`);
+        console.log(`[Blueprint DEBUG] questsPerLevel: ${questsPerLevel}, numLevels: ${numLevels}`);
+
+        // 1. Map AI output to quests (filter out any reward nodes AI might have generated)
+        const questsOnly = questsData
+            .filter(q => q.type !== 'reward') // Remove any AI-generated rewards
+            .map(q => {
+                let dur = 15;
+                if (typeof q.duration === 'number') dur = q.duration;
+                else if (typeof q.duration === 'string') {
+                    const match = q.duration.match(/\d+/);
+                    dur = match ? parseInt(match[0], 10) : 15;
+                }
+                return {
+                    title: q.title,
+                    description: q.description || "Just do it.",
+                    checklist: [],
+                    duration: dur,
+                    isCompleted: false,
+                    type: 'quest'
+                };
+            });
+
+        // 2. SERVER-SIDE REWARD INJECTION
+        // IMPORTANT: Trim to exactly questCount to ensure consistent 5 levels
+        const trimmedQuests = questsOnly.slice(0, questCount);
+        console.log(`[Blueprint DEBUG] AI generated ${questsOnly.length}, trimmed to ${trimmedQuests.length}`);
+
+        // Insert a reward node after every questsPerLevel quests
+        const finalQuests = [];
+        let levelNum = 1;
+        for (let i = 0; i < trimmedQuests.length; i++) {
+            finalQuests.push(trimmedQuests[i]);
+
+            // If we've added questsPerLevel quests, inject a reward
+            if ((i + 1) % questsPerLevel === 0 && levelNum <= numLevels) {
+                finalQuests.push({
+                    title: `Level ${levelNum} Reward`,
+                    description: `Celebrate completing Level ${levelNum}! Take a break, treat yourself, or reflect on your progress.`,
+                    checklist: [],
+                    duration: 0,
+                    isCompleted: false,
+                    type: 'reward'
+                });
+                levelNum++;
             }
-            return {
-                title: q.title,
-                description: q.description || "Just do it.",
-                checklist: [], // Empty initially
-                duration: dur,
-                isCompleted: false
-            };
-        });
+        }
+
+        // Handle edge case: if quests don't divide evenly, add final reward at end
+        if (trimmedQuests.length > 0 && trimmedQuests.length % questsPerLevel !== 0 && levelNum <= numLevels) {
+            finalQuests.push({
+                title: `Level ${levelNum} Reward`,
+                description: `Celebrate completing your journey! You've made amazing progress.`,
+                checklist: [],
+                duration: 0,
+                isCompleted: false,
+                type: 'reward'
+            });
+        }
+
+        console.log(`[Blueprint] Generated ${trimmedQuests.length} quests + ${levelNum - 1} rewards = ${finalQuests.length} total items`);
+        console.log(`[Blueprint DEBUG] Final quest types: ${finalQuests.map(q => q.type).join(', ')}`);
 
         res.status(200).json({
             success: true,
-            data: quests,
+            data: finalQuests,
             saved: false
         });
     } catch (error) {
@@ -422,6 +491,96 @@ router.post('/hype', protect, async (req, res) => {
     } catch (error) {
         console.error("Hype Gen Error:", error);
         res.json({ hype: "You crushed it! The universe is taking notes! ✨ 🚀" }); // Fallback
+    }
+});
+
+// @desc    Upload Vision Board Image
+// @route   POST /api/blueprint/vision-board/upload
+// @access  Private
+router.post('/vision-board/upload', protect, upload.single('image'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    // Return filename for relative path usage on client
+    res.json({ url: req.file.filename });
+});
+
+// @desc    Save Vision Board Items
+// @route   POST /api/blueprint/vision-board/save
+// @access  Private
+router.post('/vision-board/save', protect, async (req, res) => {
+    const { blueprintId, items } = req.body;
+
+    if (!blueprintId || !Array.isArray(items)) {
+        return res.status(400).json({ message: "Invalid data" });
+    }
+
+    try {
+        const blueprint = await Blueprint.findOne({ _id: blueprintId, firebaseUid: req.user.uid });
+        if (!blueprint) return res.status(404).json({ message: "Blueprint not found" });
+
+        blueprint.visionBoard = items;
+        blueprint.updatedAt = Date.now();
+
+        await blueprint.save();
+        res.json({ success: true, data: blueprint.visionBoard });
+    } catch (error) {
+        console.error("Save VB Error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+
+// @desc    Generate Celebration Message
+// @route   POST /api/blueprint/celebrate
+router.post('/celebrate', protect, async (req, res) => {
+    try {
+        const { journeyName, questName } = req.body;
+        console.log(`[Blueprint] Celebration Request for: ${journeyName} - ${questName || 'Final'}`);
+
+        if (!journeyName) return res.status(400).json({ message: "Journey name required" });
+
+        // Fetch blueprint to get overarching "Dream" context
+        const blueprint = await Blueprint.findOne({ firebaseUid: req.user.uid, dream: journeyName });
+        const dreamContext = blueprint ? blueprint.dream : journeyName;
+
+        let systemPrompt = `
+        You are Gabby Beckford, the Delulu Coach. You are high-energy, sassy, and incredibly supportive.
+        Your goal is to make the user feel like the main character of their life.
+        Use emojis and dramatic, vivid language.
+        `;
+
+        let userPrompt;
+        if (questName) {
+            userPrompt = `
+            Context: The user achieved "${questName}" as part of their journey to "${dreamContext}".
+            Task: Write a sassy, high-energy main character message. 
+            Constraint: MANDATORY maximum 50 characters. 
+            Focus: Mention both the quest and the journey goal if possible.
+            `;
+        } else {
+            userPrompt = `
+            The user just CONQUERED their entire journey: "${dreamContext}"!
+            Task: Write an epic, dramatic final victory message.
+            Constraint: MANDATORY maximum 50 characters.
+            `;
+        }
+
+        const completion = await client.chat.completions.create({
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            model: 'llama3.1-8b',
+            temperature: 0.85,
+            max_completion_tokens: 100 // Lower tokens for shorter output
+        });
+
+        const message = completion.choices[0].message.content.trim().replace(/^"|"$/g, ''); // Remove outer quotes if AI adds them
+        console.log(`[Blueprint] Generated Celebration: ${message}`);
+
+        res.status(200).json({ message });
+    } catch (error) {
+        console.error("Celebration Gen Error:", error);
+        res.status(200).json({ message: "You did it! You've officially conquered this. Be proud of how far you've come! ✨🚀" });
     }
 });
 

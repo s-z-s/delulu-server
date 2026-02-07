@@ -30,6 +30,7 @@ app.use('/api/wins', require('./routes/winRoutes'));
 app.use('/api/side-quests', require('./routes/sideQuestRoutes'));
 app.use('/api/todos', require('./routes/todoRoutes'));
 app.use('/api/user', require('./routes/userRoutes'));
+app.use('/api/theme', require('./routes/themeRoutes'));
 
 app.get('/', (req, res) => {
     res.send('API is running...');

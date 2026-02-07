@@ -49,6 +49,11 @@ const UserSchema = new mongoose.Schema({
         status: { type: String, enum: ['idle', 'in_progress'], default: 'idle' },
         startedAt: { type: Date },
         completedChecklistIndices: [{ type: Number }]
+    },
+    // User Configurations
+    config: {
+        themeId: { type: String, default: 'warm_cream' },
+        themeMode: { type: String, enum: ['system', 'light', 'dark'], default: 'system' }
     }
 }, {
     timestamps: true,
