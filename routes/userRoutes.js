@@ -222,4 +222,31 @@ router.post('/quest/cancel', protect, async (req, res) => {
     }
 });
 
+// @desc    Mark a feature guide as seen
+// @route   PUT /api/user/config/guides
+// @access  Private
+router.put('/config/guides', protect, async (req, res) => {
+    try {
+        const { guideId } = req.body;
+        const { uid: tokenUid } = req.user;
+
+        if (!guideId) {
+            return res.status(400).json({ message: 'Guide ID required' });
+        }
+
+        const user = await User.findOne({ firebaseUid: tokenUid });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (!user.config.guidesSeen.includes(guideId)) {
+            user.config.guidesSeen.push(guideId);
+            await user.save();
+        }
+
+        res.status(200).json({ guidesSeen: user.config.guidesSeen });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 module.exports = router;

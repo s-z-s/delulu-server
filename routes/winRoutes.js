@@ -1,65 +1,50 @@
 const express = require('express');
 const router = express.Router();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Win = require('../models/Win');
 const { protect } = require('../middleware/authMiddleware');
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// Models verified via list_models.js script
-const MODELS = [
-    'gemini-2.5-flash',       // Newest Stable
-    'gemini-2.5-flash-lite',  // Newest Lite
-    'gemini-flash-latest',    // Classic Stable Alias
-    'gemini-2.0-flash-lite',  // Available Lite
-    'gemini-2.0-flash-lite-001'
-];
-
-// Helper wrapper to timeout promises
-const timeout = (prom, time) =>
-    Promise.race([
-        prom,
-        new Promise((_r, rej) => setTimeout(() => rej(new Error('Request timed out')), time))
-    ]);
-
 async function generateHype(actionTitle) {
-    let lastError = null;
+    try {
+        const Cerebras = require('@cerebras/cerebras_cloud_sdk');
+        const client = new Cerebras({ apiKey: process.env.CEREBRAS_API_KEY });
 
-    const prompt = `
-    You are the Delulu Coach (Gabby Beckford). 
-    The user just completed this action: "${actionTitle}".
-    
-    Write ONE sentence of extreme, sassy, main-character-energy hype.
-    Tell them they just outworked everyone. Use the phrase "The room is empty" or "Boarding pass printed" if relevant.
-    Make it short and punchy.
-    `;
+        const systemPrompt = `
+        You are Gabby Beckford (The Delulu Coach).
+        The user just completed a "Little Win": "${actionTitle}".
+        
+        1. Write ONE sentence of extreme, sassy, main-character-energy hype (max 20 words).
+        2. Pick ONE relevant emoji that best fits this win (e.g., 🏋️‍♀️ for workout, 💻 for code).
+        
+        Return ONLY valid JSON:
+        { "hype": "Your hype sentence here", "icon": "🎉" }
+        `;
 
-    for (const modelName of MODELS) {
-        try {
-            console.log(`[Hype] Attempting with model: ${modelName}`);
-            const model = genAI.getGenerativeModel({ model: modelName });
+        const response = await client.chat.completions.create({
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `Win: ${actionTitle}` }
+            ],
+            model: 'llama3.3-70b',
+            response_format: { type: "json_object" }
+        });
 
-            // 8 second timeout
-            const result = await timeout(
-                model.generateContent(prompt),
-                8000
-            );
-
-            const response = await result.response;
-            const text = response.text().trim();
-            console.log(`[Hype] Success with ${modelName}!`);
-            return text;
-        } catch (error) {
-            const errorMsg = error ? error.message : "Unknown error";
-            console.warn(`[Hype] Failed with ${modelName}: ${errorMsg}`);
-            lastError = error;
-            // Continue to next model
+        let rawContent = response.choices[0].message.content;
+        // Strip markdown code blocks if present
+        if (rawContent.includes('```')) {
+            rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '');
         }
-    }
 
-    console.error("All Gemini Hype models failed. Returning fallback.");
-    // Fallback if AI fails completely so DB save still happens
-    return "You did that! (AI is catching its breath, but you're unstoppable)";
+        const content = JSON.parse(rawContent.trim());
+        return {
+            hype: content.hype || "You did that!",
+            icon: content.icon || "✨"
+        };
+    } catch (error) {
+        console.error("Cerebras Hype Error:", error);
+        return {
+            hype: "You did that! (AI is catching its breath, but you're unstoppable)",
+            icon: "✨"
+        };
+    }
 }
 
 // @desc    Save a new Win and get Hype
@@ -73,15 +58,16 @@ router.post('/', protect, async (req, res) => {
     }
 
     try {
-        // 1. Generate Hype with fail-safe
-        const hypeComment = await generateHype(title);
+        // 1. Generate Hype & Icon
+        const aiResult = await generateHype(title);
 
         // 2. Save to DB
         const win = await Win.create({
             firebaseUid: req.user.uid,
             title,
             type: type || 'mini',
-            hypeComment
+            hypeComment: aiResult.hype,
+            icon: aiResult.icon
         });
 
         res.status(201).json(win);

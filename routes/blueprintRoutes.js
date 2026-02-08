@@ -456,6 +456,44 @@ router.patch('/complete', protect, async (req, res) => {
     }
 });
 
+// @desc    Delete quest evidence photo
+// @route   DELETE /api/blueprint/evidence
+// @access  Private
+router.delete('/evidence', protect, async (req, res) => {
+    const { questTitle, blueprintId } = req.body;
+
+    if (!questTitle) {
+        return res.status(400).json({ message: 'Quest title is required' });
+    }
+
+    try {
+        let blueprint;
+        if (blueprintId) {
+            blueprint = await Blueprint.findOne({ _id: blueprintId, firebaseUid: req.user.uid });
+        } else {
+            blueprint = await Blueprint.findOne({ firebaseUid: req.user.uid }).sort({ updatedAt: -1 });
+        }
+
+        if (!blueprint) {
+            return res.status(404).json({ message: 'Blueprint not found' });
+        }
+
+        const quest = blueprint.quests.find(q => q.title === questTitle);
+        if (!quest) {
+            return res.status(404).json({ message: 'Quest not found' });
+        }
+
+        // Clear evidence field
+        quest.evidenceUrl = undefined;
+
+        await blueprint.save();
+        res.status(200).json(blueprint);
+    } catch (error) {
+        console.error("Delete Evidence Error:", error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // @desc    Generate Hype for Quest Completion
 // @route   POST /api/blueprint/hype
 // @access  Private

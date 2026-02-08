@@ -8,6 +8,7 @@ const User = require('../models/User');
 // @access  Private (Bearer token required)
 
 const Sector = require('../models/Sector');
+const axios = require('axios');
 
 // Helper to create default sectors
 async function createDefaultSectors(uid) {
@@ -28,6 +29,43 @@ async function createDefaultSectors(uid) {
     }
 }
 
+// Helper to grant 30-day Explorer trial via RevenueCat
+async function grantExplorerTrial(userId) {
+    // Check if free trial is enabled via env
+    const enableTrial = process.env.ENABLE_FREE_TRIAL?.toLowerCase();
+    if (enableTrial === 'false' || enableTrial === '0') {
+        console.log('[RevenueCat] Free trial disabled via ENABLE_FREE_TRIAL env');
+        return;
+    }
+
+    const secretKey = process.env.REVENUECAT_SECRET_KEY;
+    if (!secretKey) {
+        console.log('[RevenueCat] REVENUECAT_SECRET_KEY not configured, skipping trial grant');
+        return;
+    }
+
+    try {
+        const endTime = new Date();
+        endTime.setDate(endTime.getDate() + 30); // 30 days from now
+
+        await axios.post(
+            `https://api.revenuecat.com/v1/subscribers/${userId}/entitlements/explorer_access/promotional`,
+            {
+                duration: 'P30D' // ISO 8601 duration: 30 days
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${secretKey}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        console.log(`[RevenueCat] Granted 30-day Explorer trial to ${userId}`);
+    } catch (error) {
+        console.error('[RevenueCat] Trial grant error:', error.response?.data || error.message);
+    }
+}
+
 // Attach to sync logic
 router.post('/sync', protect, async (req, res) => {
     try {
@@ -38,6 +76,10 @@ router.post('/sync', protect, async (req, res) => {
         // Use body email/name if provided, fallback to token (which might be empty for anon)
         const userEmail = email || req.user.email;
         const userName = name || req.user.name || (userEmail ? userEmail.split('@')[0] : 'Delulu Dreamer');
+
+        // Check if user exists (for trial grant decision)
+        const existingUser = await User.findOne({ firebaseUid: tokenUid });
+        const isNewUser = !existingUser;
 
         // findOneAndUpdate with upsert option
         const user = await User.findOneAndUpdate(
@@ -54,6 +96,11 @@ router.post('/sync', protect, async (req, res) => {
 
         // Ensure default sectors exist
         await createDefaultSectors(tokenUid);
+
+        // Grant 30-day Explorer trial for new users
+        if (isNewUser) {
+            grantExplorerTrial(tokenUid).catch(console.error);
+        }
 
         res.status(200).json(user);
     } catch (error) {

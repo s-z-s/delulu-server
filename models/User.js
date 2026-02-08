@@ -52,8 +52,9 @@ const UserSchema = new mongoose.Schema({
     },
     // User Configurations
     config: {
-        themeId: { type: String, default: 'warm_cream' },
-        themeMode: { type: String, enum: ['system', 'light', 'dark'], default: 'system' }
+        themeId: { type: String, default: 'lilac_dream' },
+        themeMode: { type: String, enum: ['system', 'light', 'dark'], default: 'system' },
+        guidesSeen: [{ type: String }]
     }
 }, {
     timestamps: true,

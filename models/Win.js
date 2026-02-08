@@ -18,6 +18,10 @@ const WinSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    icon: {
+        type: String,
+        default: '🎉'
+    },
     createdAt: {
         type: Date,
         default: Date.now
