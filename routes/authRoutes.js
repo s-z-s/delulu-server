@@ -70,15 +70,17 @@ async function grantExplorerTrial(userId) {
 router.post('/sync', protect, async (req, res) => {
     try {
         // Extract fields from body (Client sends source of truth for first sync)
-        const { email, name, age, onboardingProgress } = req.body;
+        const { email, name, age, onboardingProgress, photoURL } = req.body;
         const { uid: tokenUid } = req.user;
 
         // Use body email/name if provided, fallback to token (which might be empty for anon)
         const userEmail = email || req.user.email;
         const userName = name || req.user.name || (userEmail ? userEmail.split('@')[0] : 'Delulu Dreamer');
 
-        // Check if user exists (for trial grant decision)
+        // Find existing user to avoid overwriting photoURL with null/undefined if not sent
         const existingUser = await User.findOne({ firebaseUid: tokenUid });
+        const userPhotoURL = photoURL || (existingUser ? existingUser.photoURL : req.user.picture);
+
         const isNewUser = !existingUser;
 
         // findOneAndUpdate with upsert option
@@ -88,6 +90,7 @@ router.post('/sync', protect, async (req, res) => {
                 firebaseUid: tokenUid,
                 email: userEmail,
                 displayName: userName,
+                photoURL: userPhotoURL,
                 age: age,
                 onboardingProgress: onboardingProgress
             },

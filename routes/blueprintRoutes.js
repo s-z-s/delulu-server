@@ -61,6 +61,39 @@ function parseAIResponse(text) {
     throw new Error("No JSON array found in response");
 }
 
+// Helper: Generate Hype Text
+async function generateHypeText(questTitle) {
+    const systemMessage = `
+    You are the Delulu Coach (Gabby Beckford). 
+    Your goal is to make the user feel like the main character of their life.
+    
+    Write a short, sassy, high-energy congratulatory message (1-2 sentences).
+    Use emojis. Be dramatic. Remind them they are the main character.
+    Examples:
+    "The room is empty and you just filled it with your brilliance! 💅 ✨"
+    "Brick by brick? Honey, you just laid the whole foundation. 🏗️ 🔥"
+    `;
+
+    const userMessage = `I just completed the quest: "${questTitle}"`;
+
+    try {
+        const completion = await client.chat.completions.create({
+            messages: [
+                { role: 'system', content: systemMessage },
+                { role: 'user', content: userMessage }
+            ],
+            model: 'llama3.1-8b',
+            temperature: 0.8,
+            max_completion_tokens: 150
+        });
+
+        return completion.choices[0].message.content.trim().replace(/^"|"$/g, '');
+    } catch (e) {
+        console.error("Hype Generation Error:", e);
+        return "You crushed it! The universe is taking notes! ✨ 🚀";
+    }
+}
+
 // @desc    Get all blueprints for user
 // @route   GET /api/blueprint/list
 router.get('/list', protect, async (req, res) => {
@@ -403,7 +436,15 @@ router.post('/complete-with-evidence', protect, upload.single('evidence'), async
         }
 
         await blueprint.save();
-        res.json(blueprint);
+
+        // Response
+        let responseData = blueprint.toObject();
+        if (req.body.isExplorer === 'true' || req.body.isExplorer === true) {
+            console.log(`[Blueprint] Generating celebration for Explorer: ${req.user.uid}`);
+            responseData.celebrationMessage = await generateHypeText(questTitle);
+        }
+
+        res.json(responseData);
 
     } catch (error) {
         console.error("Complete Evidence Error:", error);
@@ -449,7 +490,15 @@ router.patch('/complete', protect, async (req, res) => {
         }
 
         await blueprint.save();
-        res.status(200).json(blueprint);
+
+        // Response
+        let responseData = blueprint.toObject();
+        if (req.body.isExplorer === 'true' || req.body.isExplorer === true) {
+            console.log(`[Blueprint] Generating celebration for Explorer (PATCH): ${req.user.uid}`);
+            responseData.celebrationMessage = await generateHypeText(questTitle);
+        }
+
+        res.status(200).json(responseData);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
@@ -498,37 +547,21 @@ router.delete('/evidence', protect, async (req, res) => {
 // @route   POST /api/blueprint/hype
 // @access  Private
 router.post('/hype', protect, async (req, res) => {
-    const { questTitle } = req.body;
-
-    if (!questTitle) return res.status(400).json({ message: "Quest title required" });
-
-    const systemMessage = `
-    You are the Delulu Coach (Gabby Beckford). 
-    Your user just completed the quest: "${questTitle}".
-    
-    Write a short, sassy, high-energy congratulatory message (1-2 sentences).
-    Use emojis. Be dramatic. Remind them they are the main character.
-    Examples:
-    "The room is empty and you just filled it with your brilliance! 💅 ✨"
-    "Brick by brick? Honey, you just laid the whole foundation. 🏗️ 🔥"
-    `;
-
     try {
-        const completion = await client.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemMessage },
-                { role: 'user', content: userMessage }
-            ],
-            model: 'llama3.1-8b',
-            temperature: 0.8,
-            max_completion_tokens: 150
-        });
+        const { questTitle } = req.body;
+        if (!questTitle) return res.status(400).json({ message: "Quest title required" });
 
-        const hypeText = completion.choices[0].message.content.trim();
+        const isExplorer = req.body.isExplorer === 'true' || req.body.isExplorer === true;
+        let hypeText = "You crushed it! The universe is taking notes! ✨ 🚀";
+
+        if (isExplorer) {
+            hypeText = await generateHypeText(questTitle);
+        }
+
         res.json({ hype: hypeText });
     } catch (error) {
-        console.error("Hype Gen Error:", error);
-        res.json({ hype: "You crushed it! The universe is taking notes! ✨ 🚀" }); // Fallback
+        console.error("Hype Route Error:", error);
+        res.status(500).json({ message: "Server Error" });
     }
 });
 
@@ -602,19 +635,24 @@ router.post('/celebrate', protect, async (req, res) => {
             `;
         }
 
-        const completion = await client.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-            ],
-            model: 'llama3.1-8b',
-            temperature: 0.85,
-            max_completion_tokens: 100 // Lower tokens for shorter output
-        });
+        const isExplorer = req.body.isExplorer === 'true' || req.body.isExplorer === true;
+        let message = "You did it! You've officially conquered this. Be proud of how far you've come! ✨🚀";
 
-        const message = completion.choices[0].message.content.trim().replace(/^"|"$/g, ''); // Remove outer quotes if AI adds them
-        console.log(`[Blueprint] Generated Celebration: ${message}`);
+        if (isExplorer) {
+            const completion = await client.chat.completions.create({
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt }
+                ],
+                model: 'llama3.1-8b',
+                temperature: 0.85,
+                max_completion_tokens: 100
+            });
 
+            message = completion.choices[0].message.content.trim().replace(/^"|"$/g, '');
+        }
+
+        console.log(`[Blueprint] Celebration (Explorer: ${isExplorer}): ${message}`);
         res.status(200).json({ message });
     } catch (error) {
         console.error("Celebration Gen Error:", error);

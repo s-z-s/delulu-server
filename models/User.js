@@ -14,6 +14,9 @@ const UserSchema = new mongoose.Schema({
     displayName: {
         type: String,
     },
+    photoURL: {
+        type: String,
+    },
     delusionalDream: {
         type: String,
     },

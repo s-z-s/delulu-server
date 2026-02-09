@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Win = require('../models/Win');
 const { protect } = require('../middleware/authMiddleware');
+const Cerebras = require('@cerebras/cerebras_cloud_sdk');
+const client = new Cerebras({ apiKey: process.env.CEREBRAS_API_KEY });
+
 async function generateHype(actionTitle) {
     try {
-        const Cerebras = require('@cerebras/cerebras_cloud_sdk');
-        const client = new Cerebras({ apiKey: process.env.CEREBRAS_API_KEY });
 
         const systemPrompt = `
         You are Gabby Beckford (The Delulu Coach).
@@ -23,8 +24,7 @@ async function generateHype(actionTitle) {
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: `Win: ${actionTitle}` }
             ],
-            model: 'llama3.3-70b',
-            response_format: { type: "json_object" }
+            model: 'llama3.1-8b',
         });
 
         let rawContent = response.choices[0].message.content;
@@ -58,8 +58,13 @@ router.post('/', protect, async (req, res) => {
     }
 
     try {
-        // 1. Generate Hype & Icon
-        const aiResult = await generateHype(title);
+        const isExplorer = req.body.isExplorer === 'true' || req.body.isExplorer === true;
+        let aiResult = { hype: "You did it!", icon: "✨" };
+
+        if (isExplorer) {
+            console.log(`[Wins] Generating AI Hype for Explorer: ${req.user.uid}`);
+            aiResult = await generateHype(title);
+        }
 
         // 2. Save to DB
         const win = await Win.create({

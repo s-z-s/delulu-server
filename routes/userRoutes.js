@@ -87,6 +87,59 @@ router.get('/', protect, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // --- STREAK CALCULATION ON FETCH ---
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const lastLogin = user.stats.lastLoginDate ? new Date(user.stats.lastLoginDate) : null;
+        let isNewDay = true;
+
+        if (lastLogin) {
+            const lastLoginNormalized = new Date(lastLogin);
+            lastLoginNormalized.setHours(0, 0, 0, 0);
+            if (lastLoginNormalized.getTime() === today.getTime()) {
+                isNewDay = false;
+            }
+        }
+
+        if (isNewDay) {
+            user.stats.lastLoginDate = new Date();
+            user.stats.totalDaysLogged += 1;
+            user.stats.loginHistory.push(new Date());
+
+            if (lastLogin) {
+                const lastLoginNormalized = new Date(lastLogin);
+                lastLoginNormalized.setHours(0, 0, 0, 0);
+
+                // Calculate difference in days
+                const diffTime = Math.abs(today.getTime() - lastLoginNormalized.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                // User Rule: Streak lasts at least 3 days. 
+                // GAP <= 3 days -> Maintain Streak.
+                if (diffDays <= 3) {
+                    if (!user.stats.currentStreak) user.stats.currentStreak = 0;
+                    user.stats.currentStreak += 1;
+                } else {
+                    user.stats.currentStreak = 1;
+                }
+            } else {
+                user.stats.currentStreak = 1;
+            }
+
+            if (user.stats.loginHistory.length > 365) {
+                user.stats.loginHistory.shift();
+            }
+            await user.save();
+        } else {
+            // Repair 0 streak if logged in today
+            if (!user.stats.currentStreak || user.stats.currentStreak <= 0) {
+                user.stats.currentStreak = 1;
+                await user.save();
+            }
+        }
+        // ------------------------------------
+
         res.status(200).json(user);
     } catch (error) {
         console.error(error);
@@ -106,39 +159,9 @@ router.post('/heartbeat', protect, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Normalize to start of day
-
-        // Check if today is already logged
-        const lastLogin = user.stats.lastLoginDate ? new Date(user.stats.lastLoginDate) : null;
-        let isNewDay = true;
-
-        if (lastLogin) {
-            const lastLoginNormalized = new Date(lastLogin);
-            lastLoginNormalized.setHours(0, 0, 0, 0);
-            if (lastLoginNormalized.getTime() === today.getTime()) {
-                isNewDay = false;
-            }
-        }
-
-        if (isNewDay) {
-            user.stats.lastLoginDate = new Date();
-            user.stats.totalDaysLogged += 1;
-            user.stats.loginHistory.push(new Date());
-
-            // Simple Streak Logic (Consecutive Days)
-            // If last login was yesterday, increment. Else reset to 1.
-            // (Skipping detailed streak recalc here, relying on simple check for now or if user missed a day)
-            // For complex streaks, we use the history array client-side or calc here.
-            // Let's keep server logic simple: Record the date.
-
-            // Cap history to 365 days to save space
-            if (user.stats.loginHistory.length > 365) {
-                user.stats.loginHistory.shift(); // Remove oldest
-            }
-
-            await user.save();
-        }
+        // Legacy: Logic moved to generic GET /api/user (fetchUserData)
+        // This endpoint is kept to avoid 404s until client update.
+        // It does NOT update streaks anymore.
 
         res.status(200).json(user);
     } catch (error) {
