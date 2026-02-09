@@ -42,6 +42,10 @@ app.get('/privacy-policy', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
 });
 
+app.get('/delete-account', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'delete-account.html'));
+});
+
 // Custom 404 handler for debugging
 app.use((req, res, next) => {
     console.log(`404 Not Found for: ${req.method} ${req.url}`);
