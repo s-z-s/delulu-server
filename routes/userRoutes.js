@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const User = require('../models/User');
+const axios = require('axios');
 
 // @desc    Add unlocked achievement
 // @route   POST /api/user/achievement
@@ -139,8 +140,35 @@ router.get('/', protect, async (req, res) => {
             }
         }
         // ------------------------------------
+        // --- EXPLORER STATUS (RevenueCat) ---
+        let isExplorer = false;
+        try {
+            const rcResponse = await axios.get(
+                `https://api.revenuecat.com/v1/subscribers/${tokenUid}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${process.env.REVENUECAT_SECRET_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
 
-        res.status(200).json(user);
+            const entitlements = rcResponse.data.subscriber.entitlements;
+            isExplorer = entitlements && entitlements.explorer_access && entitlements.explorer_access.expires_date
+                ? new Date(entitlements.explorer_access.expires_date) > new Date()
+                : !!(entitlements && entitlements.explorer_access);
+
+            console.log(`[RC] Explorer status for ${tokenUid}: ${isExplorer}`);
+        } catch (rcError) {
+            console.error('[RC] Error fetching subscriber info:', rcError.message);
+            // Default to false on error to avoid blocking user data
+        }
+        // ------------------------------------
+
+        res.status(200).json({
+            ...user.toObject(),
+            isExplorer
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });

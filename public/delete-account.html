@@ -4,10 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Deletion - Delulu App</title>
+    <title>Account Deletion — delulu</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <style>
         * {
@@ -16,260 +17,374 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --primary: #A64D79;
+            --secondary: #FF4081;
+            --seed: #BE9FE1;
+            --surface-light: #F1F1F6;
+            --surface-dark: #1A1A1D;
+            --card-dark: #3B1C32;
+            --on-surface: #6A1E55;
+            --text-light: #EDE7F6;
+        }
+
         body {
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-            line-height: 1.7;
-            color: #333;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--surface-dark);
+            color: var(--text-light);
             min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 8px;
+            justify-content: center;
+        }
+
+        .logo img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        /* Animated background same as home */
+        .bg-decoration {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            animation: float 18s ease-in-out infinite;
+        }
+
+        .bg-orb-1 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(166, 77, 121, 0.2) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+        }
+
+        .bg-orb-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(190, 159, 225, 0.1) 0%, transparent 70%);
+            bottom: -50px;
+            left: -50px;
+            animation-delay: -6s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(30px, -20px) scale(1.05);
+            }
+
+            66% {
+                transform: translate(-20px, 15px) scale(0.95);
+            }
         }
 
         .container {
             max-width: 800px;
             margin: 0 auto;
             padding: 40px 24px;
+            position: relative;
+            z-index: 1;
         }
 
         header {
             text-align: center;
-            margin-bottom: 48px;
-            padding: 48px 32px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 24px;
-            color: white;
-            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+            margin-bottom: 40px;
+            padding: 20px 0;
         }
 
         header h1 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 12px;
-            color: #ffffff;
+            font-size: 2.4rem;
+            color: #fff;
+            margin-bottom: 8px;
         }
 
         header p {
+            color: var(--seed);
+            font-weight: 600;
             font-size: 1.1rem;
-            color: #ffffff;
         }
 
         .content {
-            background: white;
-            border-radius: 24px;
+            background: rgba(59, 28, 50, 0.5);
+            border: 1px solid rgba(190, 159, 225, 0.15);
+            border-radius: 32px;
             padding: 48px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(10px);
         }
 
         h2 {
-            color: #667eea;
             font-size: 1.6rem;
-            margin: 32px 0 16px 0;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #f0f0f0;
+            margin: 40px 0 20px 0;
+            color: #fff;
         }
 
-        h2:first-of-type {
+        h2:first-child {
             margin-top: 0;
         }
 
         p {
             margin-bottom: 20px;
-            color: #555;
-            font-size: 1.05rem;
+            color: rgba(237, 231, 246, 0.7);
         }
 
-        .steps-box {
-            background: #f8faff;
-            border: 1px solid #e0e7ff;
-            border-radius: 16px;
-            padding: 32px;
-            margin: 24px 0;
+        .steps-container {
+            margin: 32px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .step {
+        .step-item {
             display: flex;
             gap: 20px;
-            margin-bottom: 24px;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            border: 1px solid rgba(190, 159, 225, 0.08);
+            align-items: center;
         }
 
-        .step:last-child {
-            margin-bottom: 0;
-        }
-
-        .step-number {
-            width: 36px;
-            height: 36px;
-            background: #667eea;
-            color: white;
+        .step-count {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 800;
+            font-weight: 700;
+            font-size: 1.1rem;
             flex-shrink: 0;
         }
 
         .step-text strong {
             display: block;
-            color: #333;
+            color: #fff;
             margin-bottom: 4px;
-            font-size: 1.1rem;
         }
 
-        .data-list {
-            list-style: none;
+        .step-text p {
+            margin-bottom: 0;
+            font-size: 0.95rem;
+        }
+
+        .data-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 12px;
-            margin-bottom: 24px;
+            margin: 24px 0;
         }
 
-        .data-list li {
+        .data-tag {
+            background: rgba(166, 77, 121, 0.15);
             padding: 12px 16px;
-            background: #f9fafb;
-            border-radius: 10px;
-            color: #666;
-            display: flex;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--seed);
+            border: 1px solid rgba(166, 77, 121, 0.2);
+        }
+
+        .warning-box {
+            background: rgba(255, 64, 129, 0.1);
+            border: 1px solid rgba(255, 64, 129, 0.3);
+            padding: 24px;
+            border-radius: 20px;
+            margin-top: 40px;
+        }
+
+        .warning-box strong {
+            color: var(--secondary);
+            display: block;
+            margin-bottom: 8px;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .btn-action {
+            display: inline-flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .data-list li::before {
-            content: "•";
-            color: #667eea;
-            font-weight: bold;
-        }
-
-        .warning-note {
-            background: #fff5f5;
-            border-left: 4px solid #f56565;
-            padding: 20px;
-            border-radius: 0 12px 12px 0;
-            margin-top: 32px;
-        }
-
-        .warning-note strong {
-            color: #c53030;
-        }
-
-        .btn-email {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 14px 28px;
-            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: #fff;
+            padding: 16px 32px;
+            border-radius: 16px;
             text-decoration: none;
-            font-weight: 600;
-            margin-top: 8px;
+            font-weight: 700;
+            margin-top: 24px;
             transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(166, 77, 121, 0.3);
         }
 
-        .btn-email:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        .btn-action:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(166, 77, 121, 0.4);
+        }
+
+        .back-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            color: var(--seed);
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 0.9rem;
         }
 
         footer {
             text-align: center;
-            margin-top: 48px;
-            padding: 24px;
-            color: #888;
-            font-size: 0.95rem;
+            margin-top: 60px;
+            padding: 40px;
+            color: rgba(237, 231, 246, 0.3);
+            font-size: 0.9rem;
         }
 
         @media (max-width: 640px) {
-            .container {
-                padding: 20px 16px;
-            }
-
             .content {
                 padding: 32px 20px;
             }
 
-            header h1 {
-                font-size: 1.8rem;
+            .data-grid {
+                grid-template-columns: 1fr;
             }
 
-            .data-list {
-                grid-template-columns: 1fr;
+            .step-item {
+                padding: 16px;
             }
         }
     </style>
 </head>
 
 <body>
+    <div class="bg-decoration">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+    </div>
+
     <div class="container">
+        <a href="/" class="back-home">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6" />
+            </svg>
+            Back to Home
+        </a>
+
         <header>
-            <h1>Account Deletion Request</h1>
-            <p>Delulu — Turn Your Dreams Into Reality</p>
+            <div class="logo">
+                <img src="/logo.png" alt="delulu Logo">
+                delulu
+            </div>
+            <p>Manifest Your Dreams Into Reality</p>
         </header>
 
         <div class="content">
             <h2>Delete Your Account & Data</h2>
-            <p>We value your privacy and provide a straightforward way to request the deletion of your account and any
-                associated data from the <strong>Delulu</strong> app.</p>
+            <p>We value your privacy. You can request the permanent deletion of your account and all associated data in
+                a few simple steps.</p>
 
-            <div class="steps-box">
-                <div class="step">
-                    <div class="step-number">1</div>
+            <div class="steps-container">
+                <div class="step-item">
+                    <div class="step-count">1</div>
                     <div class="step-text">
-                        <strong>Compose an Email</strong>
-                        Send an email to <a href="mailto:szskdgi@gmail.com"
-                            style="color: #667eea; font-weight: 600;">szskdgi@gmail.com</a> from the email address
-                        associated with your Delulu account.
+                        <strong>Compose Email</strong>
+                        <p>Write to us from your registered account email address.</p>
                     </div>
                 </div>
-                <div class="step">
-                    <div class="step-number">2</div>
+                <div class="step-item">
+                    <div class="step-count">2</div>
                     <div class="step-text">
-                        <strong>Subject Line</strong>
-                        Use the subject line: <strong>"Account Deletion Request"</strong>.
+                        <strong>Subject: Account Deletion</strong>
+                        <p>Include "Account Deletion Request" in the subject line.</p>
                     </div>
                 </div>
-                <div class="step">
-                    <div class="step-number">3</div>
+                <div class="step-item">
+                    <div class="step-count">3</div>
                     <div class="step-text">
-                        <strong>Provide Details</strong>
-                        In the body of the email, please confirm your registered email address and display name so we
-                        can verify your identity.
+                        <strong>Confirm Identity</strong>
+                        <p>Include your display name to help us verify your request faster.</p>
                     </div>
-                </div>
-                <div style="text-align: center; margin-top: 32px;">
-                    <a href="mailto:szskdgi@gmail.com?subject=Account Deletion Request" class="btn-email">Request
-                        Deletion Now</a>
                 </div>
             </div>
 
-            <h2>What data will be deleted?</h2>
-            <p>Upon processing your request, we will permanently remove the following information from our servers:</p>
-            <ul class="data-list">
-                <li>Account Profile (Email, Name)</li>
-                <li>Authentication Records</li>
-                <li>Dreams & Vision Board Links</li>
-                <li>Daily Quests & Task History</li>
-                <li>Achievements & Streaks</li>
-                <li>Custom App Settings</li>
-                <li>"Little Wins" Logs</li>
-                <li>AI Interaction History</li>
-            </ul>
+            <div style="text-align: center;">
+                <a href="mailto:szskdgi@gmail.com?subject=Account Deletion Request&body=I would like to permanently delete my delulu account. %0D%0A%0D%0ARegistered Email: %0D%0ADisplay Name: "
+                    class="btn-action">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m22 2-7 20-4-9-9-4Z" />
+                        <path d="M22 2 11 13" />
+                    </svg>
+                    Send Deletion Request
+                </a>
+            </div>
 
-            <h2>Data Retention Policy</h2>
-            <p>Once your request is received, your account and data will be deleted within <strong>30 days</strong>. If
-                you have an active subscription, we recommend canceling it through the Google Play Store (Settings >
-                Subscriptions) before requesting deletion to avoid further charges.</p>
+            <h2>What data will be removed?</h2>
+            <p>Once processed, the following data is permanently purged from our servers:</p>
+            <div class="data-grid">
+                <div class="data-tag">✨ Account Profile</div>
+                <div class="data-tag">🔐 Auth Records</div>
+                <div class="data-tag">🌈 Vision Boards</div>
+                <div class="data-tag">🎯 Goal History</div>
+                <div class="data-tag">🏆 Achievements</div>
+                <div class="data-tag">🫧 Side Quests</div>
+                <div class="data-tag">🏆 Little Wins</div>
+                <div class="data-tag">🧠 AI Blueprints</div>
+            </div>
 
-            <p><strong>Note on Purchase History:</strong> Transaction identifiers and payment logs related to premium
-                subscriptions are retained for the legally required period (typically 7 years) to comply with tax and
-                audit regulations, though they are decoupled from your personal profile where possible.</p>
+            <h2>Retention & Subscriptions</h2>
+            <p>Deletion is typically processed within **30 days**. We recommend cancelling any active premium
+                subscriptions in the Play Store before requesting account deletion.</p>
+            <p style="font-size: 0.85rem; opacity: 0.6;">* Note: Transaction IDs are retained for 7 years as required by
+                tax law but are decoupled from your personal profile.</p>
 
-            <div class="warning-note">
-                <p><strong>Warning:</strong> This action is permanent. Once your account and data are deleted, they
-                    cannot be recovered, and your progress, achievements, and premium access will be lost.</p>
+            <div class="warning-box">
+                <strong>⚠️ Permanent Action</strong>
+                <p>This action is irreversible. Once your account is deleted, your progress, streaks, and premium access
+                    cannot be recovered.</p>
             </div>
         </div>
 
         <footer>
-            <p>© 2026 Delulu App. All rights reserved.</p>
+            <div class="logo" style="color: var(--seed); font-size: 1.4rem; margin-bottom: 12px;">
+                <img src="/logo.png" alt="delulu Logo" style="width: 32px; height: 32px;">
+                delulu
+            </div>
+            <p>© 2026 delulu. All rights reserved.</p>
         </footer>
     </div>
 </body>

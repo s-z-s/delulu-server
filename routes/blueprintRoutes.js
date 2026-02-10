@@ -624,14 +624,14 @@ router.post('/celebrate', protect, async (req, res) => {
             userPrompt = `
             Context: The user achieved "${questName}" as part of their journey to "${dreamContext}".
             Task: Write a sassy, high-energy main character message. 
-            Constraint: MANDATORY maximum 50 characters. 
+            Constraint: MANDATORY maximum 40 characters. 
             Focus: Mention both the quest and the journey goal if possible.
             `;
         } else {
             userPrompt = `
             The user just CONQUERED their entire journey: "${dreamContext}"!
             Task: Write an epic, dramatic final victory message.
-            Constraint: MANDATORY maximum 50 characters.
+            Constraint: MANDATORY maximum 40 characters.
             `;
         }
 
