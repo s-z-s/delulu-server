@@ -231,7 +231,7 @@ router.post('/analyze', protect, async (req, res) => {
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
             ],
-            model: 'llama3.3-70b',
+            model: 'llama3.1-8b',
             max_completion_tokens: 150,
         });
 

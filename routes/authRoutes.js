@@ -22,7 +22,7 @@ async function createDefaultSectors(uid) {
             { title: 'Family', color: '0xFF4FC3F7' },   // Light Blue
             { title: 'Mind', color: '0xFF81C784' },     // Green
             { title: 'Money', color: '0xFFFFD54F' },    // Amber
-            { title: 'Growth', color: '0xFFF06292' }    // Pink
+            { title: 'Career', color: '0xFFF06292' }    // Pink
         ];
 
         await Sector.insertMany(defaults.map(s => ({ ...s, firebaseUid: uid })));
