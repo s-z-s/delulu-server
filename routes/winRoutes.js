@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Win = require('../models/Win');
 const { protect } = require('../middleware/authMiddleware');
-const Cerebras = require('@cerebras/cerebras_cloud_sdk');
-const client = new Cerebras({ apiKey: process.env.CEREBRAS_API_KEY });
+const { generateAIResponse, cleanAIResponse } = require('../services/aiService');
 
 async function generateHype(actionTitle) {
     try {
@@ -19,19 +18,8 @@ async function generateHype(actionTitle) {
         { "hype": "Your hype sentence here", "icon": "🎉" }
         `;
 
-        const response = await client.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Win: ${actionTitle}` }
-            ],
-            model: 'llama3.1-8b',
-        });
-
-        let rawContent = response.choices[0].message.content;
-        // Strip markdown code blocks if present
-        if (rawContent.includes('```')) {
-            rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '');
-        }
+        const rawText = await generateAIResponse(systemPrompt, `Win: ${actionTitle}`);
+        const rawContent = cleanAIResponse(rawText);
 
         const content = JSON.parse(rawContent.trim());
         return {

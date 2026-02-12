@@ -1,13 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const Cerebras = require('@cerebras/cerebras_cloud_sdk'); // Use Cerebras
-const Blueprint = require('../models/Blueprint');
+const { generateAIResponse, cleanAIResponse } = require('../services/aiService');
 const { protect } = require('../middleware/authMiddleware');
+const Blueprint = require('../models/Blueprint');
 
-// Initialize Cerebras
-const client = new Cerebras({
-    apiKey: process.env.CEREBRAS_API_KEY
-});
 
 const multer = require('multer');
 const path = require('path');
@@ -69,25 +65,20 @@ async function generateHypeText(questTitle) {
     
     Write a short, sassy, high-energy congratulatory message (1-2 sentences).
     Use emojis. Be dramatic. Remind them they are the main character.
+    
+    Write a short, sassy, high-energy congratulatory message (1-2 sentences).
+    Use emojis. Be dramatic. Remind them they are the main character.
+    
     Examples:
-    "The room is empty and you just filled it with your brilliance! 💅 ✨"
-    "Brick by brick? Honey, you just laid the whole foundation. 🏗️ 🔥"
+    "The room is empty and you just filled it with your **brilliance**! 💅 ✨"
+    "Brick by brick? Honey, *you* just laid the **whole foundation**. 🏗️ 🔥"
     `;
 
     const userMessage = `I just completed the quest: "${questTitle}"`;
 
     try {
-        const completion = await client.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemMessage },
-                { role: 'user', content: userMessage }
-            ],
-            model: 'llama3.1-8b',
-            temperature: 0.8,
-            max_completion_tokens: 150
-        });
-
-        return completion.choices[0].message.content.trim().replace(/^"|"$/g, '');
+        const rawText = await generateAIResponse(systemMessage, userMessage);
+        return cleanAIResponse(rawText).replace(/^"|"$/g, '');
     } catch (e) {
         console.error("Hype Generation Error:", e);
         return "You crushed it! The universe is taking notes! ✨ 🚀";
@@ -205,20 +196,10 @@ router.post('/generate', async (req, res) => {
     Dream: "${dream}"
     `;
 
+    // Wrap execution in try-catch for error handling
     try {
-        console.log(`[Blueprint] Attempting generation (Cerebras: llama3.1-8b) for: ${dream.substring(0, 20)}...`);
+        const rawText = await generateAIResponse(systemMessage, userMessage);
 
-        const completion = await client.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemMessage },
-                { role: 'user', content: userMessage }
-            ],
-            model: 'llama3.1-8b',
-            temperature: 0.7,
-            max_completion_tokens: 4000
-        });
-
-        const rawText = completion.choices[0].message.content;
         console.log(`[Blueprint DEBUG] Raw AI Response:\n${rawText.substring(0, 500)}...`);
 
         const questsData = parseAIResponse(rawText);
@@ -250,6 +231,30 @@ router.post('/generate', async (req, res) => {
         const trimmedQuests = questsOnly.slice(0, questCount);
         console.log(`[Blueprint DEBUG] AI generated ${questsOnly.length}, trimmed to ${trimmedQuests.length}`);
 
+        // Create specific level rewards map
+        const levelRewards = [
+            { title: "WASTELAND CONQUERED!", description: "Treat yourself to a DRINK of your choice! 🥤☕ You've earned it." },
+            { title: "FOREST MASTERED!", description: "Go enjoy a delicious MEAL! 🍔🍕 Feed your soul and your body." },
+            { title: "ISLAND UNLOCKED!", description: "Retail therapy time! Buy a BOOK or a small ACCESSORY. 📖🧢" },
+            { title: "SKY DOMINATED!", description: "Dress for the life you want! Get that OUTFIT you've been eyeing. 👗👔" },
+            { title: "COSMOS REACHED!", description: "The world is yours! Plan a DAY TRIP or a SPECIAL EXPERIENCE. You've conquered this dream! Feel free to start a new journey whenever you're ready. 🌟🌍" }
+        ];
+
+        const getRewardNode = (num) => {
+            const info = levelRewards[num - 1] || {
+                title: `Level ${num} Reward`,
+                description: `Celebrate completing Level ${num}! Take a break.`
+            };
+            return {
+                title: info.title,
+                description: info.description,
+                checklist: [],
+                duration: 0,
+                isCompleted: false,
+                type: 'reward'
+            };
+        };
+
         // Insert a reward node after every questsPerLevel quests
         const finalQuests = [];
         let levelNum = 1;
@@ -258,28 +263,14 @@ router.post('/generate', async (req, res) => {
 
             // If we've added questsPerLevel quests, inject a reward
             if ((i + 1) % questsPerLevel === 0 && levelNum <= numLevels) {
-                finalQuests.push({
-                    title: `Level ${levelNum} Reward`,
-                    description: `Celebrate completing Level ${levelNum}! Take a break, treat yourself, or reflect on your progress.`,
-                    checklist: [],
-                    duration: 0,
-                    isCompleted: false,
-                    type: 'reward'
-                });
+                finalQuests.push(getRewardNode(levelNum));
                 levelNum++;
             }
         }
 
         // Handle edge case: if quests don't divide evenly, add final reward at end
         if (trimmedQuests.length > 0 && trimmedQuests.length % questsPerLevel !== 0 && levelNum <= numLevels) {
-            finalQuests.push({
-                title: `Level ${levelNum} Reward`,
-                description: `Celebrate completing your journey! You've made amazing progress.`,
-                checklist: [],
-                duration: 0,
-                isCompleted: false,
-                type: 'reward'
-            });
+            finalQuests.push(getRewardNode(levelNum));
         }
 
         console.log(`[Blueprint] Generated ${trimmedQuests.length} quests + ${levelNum - 1} rewards = ${finalQuests.length} total items`);
@@ -328,17 +319,7 @@ router.post('/generate-tasks', protect, async (req, res) => {
     `;
 
     try {
-        const completion = await client.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemMessage },
-                { role: 'user', content: userMessage }
-            ],
-            model: 'llama3.1-8b',
-            temperature: 0.7,
-            max_completion_tokens: 1000
-        });
-
-        const rawText = completion.choices[0].message.content;
+        const rawText = await generateAIResponse(systemMessage, userMessage);
 
         // Parse array of strings
         let checklist = [];
@@ -639,17 +620,8 @@ router.post('/celebrate', protect, async (req, res) => {
         let message = "You did it! You've officially conquered this. Be proud of how far you've come! ✨🚀";
 
         if (isExplorer) {
-            const completion = await client.chat.completions.create({
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
-                model: 'llama3.1-8b',
-                temperature: 0.85,
-                max_completion_tokens: 100
-            });
-
-            message = completion.choices[0].message.content.trim().replace(/^"|"$/g, '');
+            const rawText = await generateAIResponse(systemPrompt, userPrompt);
+            message = cleanAIResponse(rawText).replace(/^"|"$/g, '');
         }
 
         console.log(`[Blueprint] Celebration (Explorer: ${isExplorer}): ${message}`);

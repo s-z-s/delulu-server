@@ -4,6 +4,7 @@ const Sector = require('../models/Sector');
 const Task = require('../models/Task');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
+const { generateAIResponse } = require('../services/aiService');
 
 // @desc    Get all sectors with task counts (with optional date filtering)
 // @route   GET /api/todos/sectors?from=ISO_DATE&to=ISO_DATE
@@ -203,12 +204,6 @@ router.put('/tasks/:id/reminder', protect, async (req, res) => {
 router.post('/analyze', protect, async (req, res) => {
     try {
         const { sectors } = req.body;
-        const Cerebras = require('@cerebras/cerebras_cloud_sdk');
-
-        const client = new Cerebras({
-            apiKey: process.env.CEREBRAS_API_KEY,
-        });
-
         const sectorSummary = sectors.map(s => {
             const active = s.activeTaskCount || 0;
             const completed = s.completedTaskCount || 0;
@@ -226,16 +221,9 @@ router.post('/analyze', protect, async (req, res) => {
 
         const userPrompt = `Here is my current life balance:\n${sectorSummary}\n\nWhat's your "Delulu Coach" take?`;
 
-        const response = await client.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-            ],
-            model: 'llama3.1-8b',
-            max_completion_tokens: 150,
-        });
+        const suggestion = await generateAIResponse(systemPrompt, userPrompt);
 
-        res.json({ suggestion: response.choices[0].message.content });
+        res.json({ suggestion });
     } catch (error) {
         console.error('AI Analysis Error:', error);
         res.status(500).json({ message: 'AI Analysis failed' });
