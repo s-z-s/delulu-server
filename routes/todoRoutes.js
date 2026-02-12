@@ -94,6 +94,23 @@ router.post('/sectors', protect, async (req, res) => {
     }
 });
 
+// @desc    Update sector title
+// @route   PUT /api/todos/sectors/:id
+router.put('/sectors/:id', protect, async (req, res) => {
+    try {
+        const { title } = req.body;
+        const sector = await Sector.findOneAndUpdate(
+            { _id: req.params.id, firebaseUid: req.user.uid },
+            { title },
+            { new: true }
+        );
+        if (!sector) return res.status(404).json({ message: 'Sector not found' });
+        res.json(sector);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // @desc    Delete sector (and its tasks)
 // @route   DELETE /api/todos/sectors/:id
 router.delete('/sectors/:id', protect, async (req, res) => {
@@ -163,6 +180,23 @@ router.put('/tasks/:id/toggle', protect, async (req, res) => {
             );
         }
 
+        res.json(task);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @desc    Update task text
+// @route   PUT /api/todos/tasks/:id
+router.put('/tasks/:id', protect, async (req, res) => {
+    try {
+        const { text } = req.body;
+        const task = await Task.findOneAndUpdate(
+            { _id: req.params.id, firebaseUid: req.user.uid },
+            { text },
+            { new: true }
+        );
+        if (!task) return res.status(404).json({ message: 'Task not found' });
         res.json(task);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });

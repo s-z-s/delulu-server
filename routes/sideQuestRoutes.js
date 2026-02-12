@@ -78,6 +78,24 @@ router.post('/:id/log', protect, async (req, res) => {
     }
 });
 
+// @desc    Update side quest title
+// @route   PUT /api/side-quests/:id
+router.put('/:id', protect, async (req, res) => {
+    const { title } = req.body;
+    try {
+        const quest = await SideQuest.findOneAndUpdate(
+            { _id: req.params.id, firebaseUid: req.user.uid },
+            { title },
+            { new: true }
+        );
+        if (!quest) return res.status(404).json({ message: 'Quest not found' });
+        res.json(quest);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // @desc    Delete a side quest
 // @route   DELETE /api/side-quests/:id
 router.delete('/:id', protect, async (req, res) => {
