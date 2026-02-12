@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service — delulu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #A64D79;
+            --secondary: #FF4081;
+            --seed: #BE9FE1;
+            --surface-light: #F1F1F6;
+            --surface-dark: #1A1A1D;
+            --on-surface: #6A1E55;
+            --text-main: #4a4a4a;
+            --text-heading: #3B1C32;
+        }
+
+        body {
+            font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--surface-light);
+            color: var(--text-main);
+            line-height: 1.7;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: 'Fredoka', sans-serif;
+            color: var(--text-heading);
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            color: white;
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+        }
+
+        .logo img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 60px 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 32px;
+            color: white;
+            box-shadow: 0 12px 40px rgba(166, 77, 121, 0.2);
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
+
+        .last-updated {
+            margin-top: 16px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+
+        .content {
+            background: white;
+            border-radius: 32px;
+            padding: 56px;
+            box-shadow: 0 4px 30px rgba(106, 30, 85, 0.05);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin: 48px 0 24px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--surface-light);
+            color: var(--primary);
+        }
+
+        h2:first-child {
+            margin-top: 0;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            margin: 32px 0 16px 0;
+            color: var(--on-surface);
+        }
+
+        p {
+            margin-bottom: 20px;
+        }
+
+        ul,
+        ol {
+            margin: 20px 0;
+            padding-left: 24px;
+        }
+
+        li {
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: var(--secondary);
+            text-decoration: underline;
+        }
+
+        .highlight-box {
+            background: rgba(190, 159, 225, 0.1);
+            border-left: 4px solid var(--seed);
+            padding: 24px;
+            border-radius: 4px 20px 20px 4px;
+            margin: 32px 0;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 40px;
+            border-top: 1px solid rgba(106, 30, 85, 0.1);
+        }
+
+        .back-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            color: var(--on-surface);
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 16px;
+            }
+
+            .content {
+                padding: 32px 24px;
+            }
+
+            header {
+                padding: 40px 24px;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="/" class="back-home">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6" />
+            </svg>
+            Back to Home
+        </a>
+
+        <header>
+            <div class="logo">
+                <img src="/logo.png" alt="delulu Logo">
+                delulu
+            </div>
+            <h1>Terms of Service</h1>
+            <p>Manifest Your Dreams Into Reality</p>
+            <div class="last-updated">Last Updated: February 12, 2026</div>
+        </header>
+
+        <div class="content">
+            <h2>1. Acceptance of Terms</h2>
+            <p>By downloading or using delulu ("the App"), these terms will automatically apply to you – you should
+                therefore make sure that you read them carefully before using the App.</p>
+
+            <h2>2. User Content</h2>
+            <p>You are responsible for any content you post in the App, including dreams, goals, and tasks. We do not
+                claim ownership of your content, but you grant us a license to use it to provide our services.</p>
+
+            <h2>3. Premium Subscriptions (Explorer)</h2>
+            <p>Premium features are available through subscription. Payments are managed via the App Store and Play
+                Store. Refunds are subject to the policies of the respective store providers.</p>
+
+            <h2>4. AI Features</h2>
+            <p>The App uses AI to generate blueprints and motivation. While we strive for accuracy and positivity, AI
+                content is for entertainment and motivational purposes only. We are not responsible for any actions
+                taken based on AI recommendations.</p>
+
+            <h2>5. Termination</h2>
+            <p>We reserve the right to terminate or suspend access to our service immediately, without prior notice or
+                liability, for any reason whatsoever, including without limitation if you breach the Terms.</p>
+
+            <h2>6. Changes to Terms</h2>
+            <p>We may update our Terms of Service from time to time. Thus, you are advised to review this page
+                periodically for any changes.</p>
+
+            <h2>7. Contact Us</h2>
+            <p>If you have any questions or suggestions about our Terms of Service, do not hesitate to contact us at:
+            </p>
+            <div class="highlight-box">
+                <p><strong>Email:</strong> <a href="mailto:szskdgi@gmail.com">szskdgi@gmail.com</a></p>
+            </div>
+        </div>
+
+        <footer>
+            <div class="logo"
+                style="color: var(--seed); font-size: 1.4rem; margin-bottom: 12px; justify-content: center;">
+                <img src="/logo.png" alt="delulu Logo" style="width: 32px; height: 32px;">
+                delulu
+            </div>
+            <p>Your journey to becoming the main character starts here.</p>
+            <p style="margin-top: 20px;">© 2026 delulu. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+
+</html>
