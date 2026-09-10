@@ -66,4 +66,17 @@ const UserSchema = new mongoose.Schema({
     timestamps: true,
 });
 
+// Ensure null, empty, or whitespace email is always undefined so it is omitted from MongoDB unique sparse index
+UserSchema.pre('validate', function () {
+    if (this.email === null || this.email === '' || (typeof this.email === 'string' && this.email.trim() === '')) {
+        this.email = undefined;
+    }
+});
+
+UserSchema.pre('save', function () {
+    if (this.email === null || this.email === '' || (typeof this.email === 'string' && this.email.trim() === '')) {
+        this.email = undefined;
+    }
+});
+
 module.exports = mongoose.model('User', UserSchema);

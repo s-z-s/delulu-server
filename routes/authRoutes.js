@@ -108,7 +108,25 @@ router.post('/sync', protect, async (req, res) => {
             });
         } else {
             // Update existing user fields
-            if (userEmail) user.email = userEmail;
+            if (userEmail) {
+                if (user.email !== userEmail) {
+                    const existingOwner = await User.findOne({ email: userEmail, _id: { $ne: user._id } });
+                    if (existingOwner) {
+                        console.log(`[AUTH] User ${user._id} syncing email ${userEmail} already owned by ${existingOwner._id}. Merging/linking account...`);
+                        await User.deleteOne({ _id: user._id });
+                        existingOwner.firebaseUid = tokenUid;
+                        if (userName) existingOwner.displayName = userName;
+                        if (userPhotoURL) existingOwner.photoURL = userPhotoURL;
+                        if (age !== undefined && age !== null) existingOwner.age = age;
+                        if (onboardingProgress !== undefined && onboardingProgress !== null) {
+                            existingOwner.onboardingProgress = onboardingProgress;
+                        }
+                        user = existingOwner;
+                    } else {
+                        user.email = userEmail;
+                    }
+                }
+            }
             if (userName) user.displayName = userName;
             if (userPhotoURL) user.photoURL = userPhotoURL;
             if (age !== undefined && age !== null) user.age = age;
