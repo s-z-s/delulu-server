@@ -74,28 +74,50 @@ router.post('/sync', protect, async (req, res) => {
         const { uid: tokenUid } = req.user;
 
         // Use body email/name if provided, fallback to token (which might be empty for anon)
-        const userEmail = email || req.user.email;
+        const rawEmail = email || req.user.email;
+        const userEmail = (rawEmail && typeof rawEmail === 'string' && rawEmail.trim() !== '')
+            ? rawEmail.trim().toLowerCase()
+            : null;
         const userName = name || req.user.name || (userEmail ? userEmail.split('@')[0] : 'Delulu Dreamer');
 
-        // Find existing user to avoid overwriting photoURL with null/undefined if not sent
-        const existingUser = await User.findOne({ firebaseUid: tokenUid });
-        const userPhotoURL = photoURL || (existingUser ? existingUser.photoURL : req.user.picture);
+        // Check 1: Find existing user by firebaseUid
+        let user = await User.findOne({ firebaseUid: tokenUid });
+        let isNewUser = false;
 
-        const isNewUser = !existingUser;
+        // Check 2: If not found by firebaseUid, but userEmail exists, check if user exists by email
+        // (Handles re-install, device change, or account linking with existing email)
+        if (!user && userEmail) {
+            user = await User.findOne({ email: userEmail });
+            if (user) {
+                console.log(`[AUTH] Linking existing account for ${userEmail} to new firebaseUid: ${tokenUid}`);
+                user.firebaseUid = tokenUid;
+            }
+        }
 
-        // findOneAndUpdate with upsert option
-        const user = await User.findOneAndUpdate(
-            { firebaseUid: tokenUid },
-            {
+        const userPhotoURL = photoURL || (user ? user.photoURL : req.user.picture);
+
+        if (!user) {
+            isNewUser = true;
+            user = new User({
                 firebaseUid: tokenUid,
-                email: userEmail,
+                ...(userEmail ? { email: userEmail } : {}),
                 displayName: userName,
                 photoURL: userPhotoURL,
                 age: age,
                 onboardingProgress: onboardingProgress
-            },
-            { new: true, upsert: true }
-        );
+            });
+        } else {
+            // Update existing user fields
+            if (userEmail) user.email = userEmail;
+            if (userName) user.displayName = userName;
+            if (userPhotoURL) user.photoURL = userPhotoURL;
+            if (age !== undefined && age !== null) user.age = age;
+            if (onboardingProgress !== undefined && onboardingProgress !== null) {
+                user.onboardingProgress = onboardingProgress;
+            }
+        }
+
+        await user.save();
 
         // Ensure default sectors exist
         await createDefaultSectors(tokenUid);
@@ -107,8 +129,8 @@ router.post('/sync', protect, async (req, res) => {
 
         res.status(200).json(user);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error during sync' });
+        console.error('[AUTH SYNC ERROR]', error);
+        res.status(500).json({ message: 'Server Error during sync', error: error.message });
     }
 });
 

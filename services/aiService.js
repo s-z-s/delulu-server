@@ -2,7 +2,7 @@ const Groq = require('groq-sdk');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // --- CONFIGURATION ---
-const TIMEOUT_MS = 8000;
+const TIMEOUT_MS = 20000;
 
 // Initialize Clients
 function getGroqClient() {
@@ -19,12 +19,11 @@ function getGeminiClient() {
 
 // Model Fallback Chains (Free-Tier Optimized)
 const GROQ_MODELS = [
-    "openai/gpt-oss-120b",
-    "qwen/qwen3.8-27b",
-    "openai/gpt-oss-20b",
-    "groq/compound-mini",
-    "qwen/qwen3.6-27b",
-    "groq/compound"
+    "openai/gpt-oss-20b",    // Fastest (~2-3s for 30 quests), clean JSON, high TPM
+    "openai/gpt-oss-120b",   // High-intelligence flagship model (~6-7s)
+    "qwen/qwen3.8-27b",      // Strong instruction-following model (~4-5s)
+    "groq/compound-mini",    // Mini compound fallback (~9s)
+    "groq/compound"          // Compound model fallback
 ];
 
 const GEMINI_MODELS = [

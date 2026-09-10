@@ -64,8 +64,15 @@ router.put('/stats', protect, async (req, res) => {
 
         const user = await User.findOneAndUpdate(
             { firebaseUid: tokenUid },
-            { $set: updates },
-            { new: true, upsert: true } // Upsert ensures doc exists
+            { 
+                $set: updates,
+                $setOnInsert: {
+                    firebaseUid: tokenUid,
+                    displayName: req.user?.name || 'Delulu Dreamer',
+                    photoURL: req.user?.picture || null
+                }
+            },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
         );
 
         res.status(200).json(user);
