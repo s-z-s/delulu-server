@@ -22,8 +22,12 @@ app.use((req, res, next) => {
 });
 
 app.get('/api/test', (req, res) => {
-    console.log('Test route hit!');
-    res.send('API Test Working');
+    res.json({
+        status: 'online',
+        version: '1.1.0',
+        fixesDeployed: true,
+        timestamp: new Date().toISOString()
+    });
 });
 
 app.use('/api/auth', require('./routes/authRoutes'));
