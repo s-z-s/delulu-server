@@ -33,6 +33,7 @@ app.get('/api/test', (req, res) => {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/blueprint', require('./routes/blueprintRoutes'));
 app.use('/api/wins', require('./routes/winRoutes'));
+app.use('/api/mood', require('./routes/moodRoutes'));
 app.use('/api/side-quests', require('./routes/sideQuestRoutes'));
 app.use('/api/todos', require('./routes/todoRoutes'));
 app.use('/api/user', require('./routes/userRoutes'));

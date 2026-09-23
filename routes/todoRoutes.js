@@ -125,6 +125,24 @@ router.delete('/sectors/:id', protect, async (req, res) => {
 
 // === TASKS ===
 
+// @desc    Get all pending tasks for user across all sectors
+// @route   GET /api/todos/tasks/pending
+router.get('/tasks/pending', protect, async (req, res) => {
+    try {
+        const tasks = await Task.find({
+            firebaseUid: req.user.uid,
+            isCompleted: false
+        })
+        .populate('sectorId', 'title color')
+        .sort({ reminderTime: 1, createdAt: -1 });
+
+        res.json(tasks);
+    } catch (error) {
+        console.error('[Todos] Error fetching pending tasks:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // @desc    Get tasks for a sector
 // @route   GET /api/todos/sectors/:sectorId/tasks
 router.get('/sectors/:sectorId/tasks', protect, async (req, res) => {

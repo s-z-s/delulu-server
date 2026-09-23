@@ -17,6 +17,10 @@ const SideQuestSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
+    completedDates: {
+        type: [String], // Array of 'YYYY-MM-DD'
+        default: []
+    },
     createdAt: {
         type: Date,
         default: Date.now
