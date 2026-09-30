@@ -264,7 +264,7 @@ router.post('/analyze', protect, async (req, res) => {
         }).join('\n');
 
         const systemPrompt = `
-        You are Gabby Beckford (The Delulu Coach). You analyze people's "Wheel of Life" (balance of life areas).
+        You are The Delulu Coach. You analyze people's "Wheel of Life" (balance of life areas).
         The user will provide their completion stats for different life areas.
         Your job is to provide ONE sassy, high-energy, and insightful "Main Character" suggestion (max 50 words).
         If one area is lagging, call it out lovingly. If they are killing it, celebrate but keep them humble.

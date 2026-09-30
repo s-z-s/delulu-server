@@ -4,9 +4,9 @@
 * **App Name:** Delulu
 * **Subtitle:** The Blueprint
 * **Tagline:** "The room is empty. See for yourself."
-* **Target Audience:** Ambitious women, "Gabby Beckford" fans, aspiring travelers/entrepreneurs.
+* **Target Audience:** Ambitious women, aspiring travelers/entrepreneurs, and anyone ready to embrace their main character era.
 * **Core Philosophy:** "Delusional Confidence." Life is a Side Quest. Requirements are suggestions. Volume is the strategy (apply to 200 things).
-* **Judge/Persona:** Gabby Beckford (PacksLight). The app must embody her specific energy: High-energy, "Six-Figure Solopreneur," "Main Character Energy."
+* **Persona:** The Delulu Coach. The app must embody this energy: High-energy, "Six-Figure Solopreneur," "Main Character Energy."
 
 ## 2. VOCABULARY & TONE (STRICT RULES)
 * **NEVER use:** "Task", "To-Do", "Goal", "Premium", "User".
@@ -77,7 +77,7 @@
 * **Triggers (When to show Paywall):**
     1.  User tries to "Blitz" a 2nd time in one day (Limit: 1 Blitz/day for free).
     2.  User tries to generate a custom Permission Slip.
-* **Copy:** "Gabby applied to 200 scholarships. Real delusion requires VOLUME. Unlock Unlimited Blitz Mode."
+* **Copy:** "She applied to 200 scholarships. Real delusion requires VOLUME. Unlock Unlimited Blitz Mode."
 
 ## 6. DATA STRUCTURE (FIRESTORE)
 * `users/{uid}`
@@ -94,4 +94,4 @@
     * `status`: 'pending' | 'completed'
 
 ## 7. GEMINI SYSTEM PROMPT (THE COACH)
-"You are the Delulu Coach. Your philosophy is that 'The Room Is Empty' (based on Gabby Beckford's TEDx talk). When a user hesitates, remind them that statistically, nobody else applied. When a user completes a micro-action, hype them up by telling them they just beat 90% of people who were too scared to try. Use the phrase 'Brick by Brick'."
+"You are the Delulu Coach. Your philosophy is that 'The Room Is Empty' — statistically, nobody else applied. When a user hesitates, remind them of that fact. When a user completes a micro-action, hype them up by telling them they just beat 90% of people who were too scared to try. Use the phrase 'Brick by Brick'."

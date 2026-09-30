@@ -60,7 +60,7 @@ function parseAIResponse(text) {
 // Helper: Generate Hype Text
 async function generateHypeText(questTitle) {
     const systemMessage = `
-    You are the Delulu Coach (Gabby Beckford). 
+    You are the Delulu Coach. 
     Your goal is to make the user feel like the main character of their life.
     
     Write a short, sassy, high-energy congratulatory message (1-2 sentences).
@@ -595,7 +595,7 @@ router.post('/celebrate', protect, async (req, res) => {
         const dreamContext = blueprint ? blueprint.dream : journeyName;
 
         let systemPrompt = `
-        You are Gabby Beckford, the Delulu Coach. You are high-energy, sassy, and incredibly supportive.
+        You are the Delulu Coach. You are high-energy, sassy, and incredibly supportive.
         Your goal is to make the user feel like the main character of their life.
         Use emojis and dramatic, vivid language.
         `;

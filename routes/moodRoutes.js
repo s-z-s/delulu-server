@@ -82,7 +82,7 @@ router.post('/analyze', protect, async (req, res) => {
 
         if (!moods || moods.length === 0) {
             return res.json({
-                analysis: "### Welcome to your Vibe Journey! ✨\n\nYou haven't logged any moods yet. Start by rating how you feel today and adding a brief note! Once you log a few days, I'll reveal your personal emotional rhythms, peak energy triggers, and customized actions to elevate your vibes."
+                analysis: "### Welcome to your Reflections Journey! ✨\n\nYou haven't logged any days yet. Start by rating how your day went today and adding a brief note! Once you log a few days, I'll reveal your personal emotional rhythms, peak fulfillment triggers, and customized actions to elevate your days."
             });
         }
 
@@ -98,10 +98,10 @@ router.post('/analyze', protect, async (req, res) => {
         }).join('\n');
 
         const systemPrompt = `
-You are Gabby Beckford (The Delulu Coach) — confident, deeply encouraging, sassy, and insightful.
-Analyze the user's logged mood patterns and daily reflections.
+You are The Delulu Coach — confident, deeply encouraging, sassy, and insightful.
+Analyze the user's logged daily moods and reflections.
 Provide:
-1. **Vibe Check Summary**: A sharp, empowering breakdown of their emotional rhythm (spot trends, what makes them thrive, what causes dips).
+1. **Reflection Summary**: A sharp, empowering breakdown of their emotional rhythm (spot trends, what makes them thrive, what causes dips).
 2. **Key Patterns & Insights**: 2-3 specific observations based on their logged remarks or weekend vs weekday trends.
 3. **3 Delulu Action Steps**: Three practical, mood-boosting, and fun things they should do next to sustain or lift their momentum.
 
@@ -110,12 +110,12 @@ Format response in clean GitHub Markdown with cheerful emojis.
 
         const userPrompt = `
 Here is my recent mood log (${moods.length} entries recorded):
-Average Vibe Score: ${avgScore} / 5
+Average Mood Score: ${avgScore} / 5
 
 Daily Logs:
 ${moodSummary}
 
-Give me your authentic Delulu Coach vibe analysis!
+Give me your authentic Delulu Coach reflection analysis!
 `;
 
         const rawAi = await generateAIResponse(systemPrompt, userPrompt);
@@ -125,7 +125,7 @@ Give me your authentic Delulu Coach vibe analysis!
     } catch (error) {
         console.error('[Mood] Error analyzing moods:', error);
         res.status(500).json({
-            analysis: "### Delulu Coach is taking a breath! 💨\n\nYour momentum is still valid! Keep tracking your daily vibes and try analyzing again in a moment."
+            analysis: "### Delulu Coach is taking a breath! 💨\n\nYour momentum is still valid! Keep tracking your daily reflections and try analyzing again in a moment."
         });
     }
 });
