@@ -61,6 +61,15 @@ const UserSchema = new mongoose.Schema({
         themeId: { type: String, default: 'lilac_dream' },
         themeMode: { type: String, enum: ['system', 'light', 'dark'], default: 'system' },
         guidesSeen: [{ type: String }]
+    },
+    redeemedCoupons: [{
+        code: { type: String, uppercase: true, trim: true },
+        redeemedAt: { type: Date, default: Date.now },
+        duration: { type: String, default: 'monthly' },
+        expiresAt: { type: Date }
+    }],
+    explorerExpiresAt: {
+        type: Date
     }
 }, {
     timestamps: true,

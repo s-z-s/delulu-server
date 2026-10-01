@@ -51,7 +51,7 @@ async function grantExplorerTrial(userId) {
         await axios.post(
             `https://api.revenuecat.com/v1/subscribers/${userId}/entitlements/explorer_access/promotional`,
             {
-                duration: 'P30D' // ISO 8601 duration: 30 days
+                duration: 'monthly' // Fixed: RevenueCat enum for 1 month
             },
             {
                 headers: {
