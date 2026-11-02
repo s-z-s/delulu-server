@@ -18,14 +18,49 @@ const Sector = require('../models/Sector');
 const Task = require('../models/Task');
 const SideQuest = require('../models/SideQuest');
 
-// Helper to sanitize passwords (strips whitespace, carriage returns, quotes, and inline comments)
+// In-memory rate limiting for login attempts (Brute-force protection)
+const loginAttempts = new Map();
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_FAILED_ATTEMPTS = 10;
+
+function checkRateLimit(ip) {
+    const now = Date.now();
+    const record = loginAttempts.get(ip);
+    if (!record) {
+        loginAttempts.set(ip, { count: 1, firstAttempt: now });
+        return { allowed: true };
+    }
+    if (now - record.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+        loginAttempts.set(ip, { count: 1, firstAttempt: now });
+        return { allowed: true };
+    }
+    if (record.count >= MAX_FAILED_ATTEMPTS) {
+        const remainingMinutes = Math.ceil((record.firstAttempt + RATE_LIMIT_WINDOW_MS - now) / 60000);
+        return { allowed: false, remainingMinutes };
+    }
+    record.count++;
+    return { allowed: true };
+}
+
+function clearRateLimit(ip) {
+    loginAttempts.delete(ip);
+}
+
+// Clean up old rate limit records periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, rec] of loginAttempts.entries()) {
+        if (now - rec.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+            loginAttempts.delete(ip);
+        }
+    }
+}, RATE_LIMIT_WINDOW_MS);
+
+// Helper to sanitize passwords (strips carriage returns and surrounding quotes)
 function sanitizePassword(val) {
     if (!val || typeof val !== 'string') return '';
     let s = val.replace(/\r/g, '').trim();
     s = s.replace(/^["']|["']$/g, '').trim();
-    if (s.includes(' #')) {
-        s = s.split(' #')[0].trim();
-    }
     return s;
 }
 
@@ -83,35 +118,28 @@ function adminProtect(req, res, next) {
     next();
 }
 
-// Safe string comparison resisting timing attacks
-function safeStringMatch(a, b) {
-    if (typeof a !== 'string' || typeof b !== 'string') return false;
-    const bufA = Buffer.from(a);
-    const bufB = Buffer.from(b);
-    if (bufA.length !== bufB.length) return false;
-    return crypto.timingSafeEqual(bufA, bufB);
+// Constant-time hash comparison resisting timing attacks
+function safeHashCompare(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string' || !a || !b) return false;
+    const hashA = crypto.createHash('sha256').update(a).digest();
+    const hashB = crypto.createHash('sha256').update(b).digest();
+    return crypto.timingSafeEqual(hashA, hashB);
 }
 
-// @desc    Admin Login
+// @desc    Admin Login (Rate limited, timing-safe, multi-source resolution)
 // @route   POST /api/admin/login
 // @access  Public (Password protected)
 router.post('/login', (req, res) => {
     try {
-        // Dynamically re-read .env from disk so any password change or PM2 env cache is immediately synced
-        const envPath = path.join(__dirname, '..', '.env');
-        if (fs.existsSync(envPath)) {
-            try {
-                const envContent = fs.readFileSync(envPath, 'utf8');
-                const parsed = dotenv.parse(envContent);
-                if (parsed.ADMIN_PASSWORD) {
-                    process.env.ADMIN_PASSWORD = parsed.ADMIN_PASSWORD;
-                }
-                if (parsed.ADMIN_SECRET) {
-                    process.env.ADMIN_SECRET = parsed.ADMIN_SECRET;
-                }
-            } catch (envErr) {
-                console.warn('[Superadmin Login] Could not reload .env from disk:', envErr.message);
-            }
+        const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+
+        // 1. Rate limiting check
+        const rateCheck = checkRateLimit(clientIp);
+        if (!rateCheck.allowed) {
+            return res.status(429).json({
+                success: false,
+                message: `Too many failed attempts. Try again in ${rateCheck.remainingMinutes} minutes.`
+            });
         }
 
         const { password } = req.body;
@@ -119,22 +147,49 @@ router.post('/login', (req, res) => {
             return res.status(400).json({ success: false, message: 'Password is required' });
         }
 
+        // 2. Read live .env from disk to sync any manual changes immediately
+        let configured = process.env.ADMIN_PASSWORD ? sanitizePassword(process.env.ADMIN_PASSWORD) : '';
+        let rawFromFile = '';
+
+        const envPath = path.join(__dirname, '..', '.env');
+        if (fs.existsSync(envPath)) {
+            try {
+                const envContent = fs.readFileSync(envPath, 'utf8');
+                const parsed = dotenv.parse(envContent);
+                if (parsed.ADMIN_PASSWORD) {
+                    configured = sanitizePassword(parsed.ADMIN_PASSWORD);
+                    process.env.ADMIN_PASSWORD = parsed.ADMIN_PASSWORD;
+                }
+                // Extract raw literal string after ADMIN_PASSWORD= (in case unquoted # or symbols were stripped by dotenv)
+                const rawLines = envContent.split(/\r?\n/);
+                for (const line of rawLines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('ADMIN_PASSWORD=')) {
+                        let val = trimmed.substring('ADMIN_PASSWORD='.length).trim();
+                        val = val.replace(/^["']|["']$/g, '').trim();
+                        if (val) rawFromFile = val;
+                        break;
+                    }
+                }
+            } catch (envErr) {
+                console.warn('[Superadmin Login] Could not reload .env from disk:', envErr.message);
+            }
+        }
+
         const input = sanitizePassword(password);
-        const configured = sanitizePassword(process.env.ADMIN_PASSWORD);
         const fallback = 'delulu_superadmin_2026';
 
-        // Check against configured password in .env
+        // 3. Constant-time secure comparison against configured, raw, or fallback
         let valid = false;
-        if (configured && safeStringMatch(input, configured)) {
+        if (configured && safeHashCompare(input, configured)) {
+            valid = true;
+        } else if (rawFromFile && safeHashCompare(input, rawFromFile)) {
+            valid = true;
+        } else if (safeHashCompare(input, fallback)) {
             valid = true;
         }
 
-        // Also check fallback
-        if (!valid && safeStringMatch(input, fallback)) {
-            valid = true;
-        }
-
-        console.log(`[Superadmin Login] Input len: ${input.length}, Configured len: ${configured ? configured.length : 0}, HasEnv: ${!!process.env.ADMIN_PASSWORD}, Match: ${valid}`);
+        console.log(`[Superadmin Login] Input len: ${input.length}, Configured len: ${configured ? configured.length : 0}, Raw len: ${rawFromFile ? rawFromFile.length : 0}, Match: ${valid}`);
 
         if (!valid) {
             return res.status(401).json({ 
@@ -142,6 +197,9 @@ router.post('/login', (req, res) => {
                 message: 'Invalid admin credentials. Please verify your password in .env.' 
             });
         }
+
+        // Clear rate limit on successful authentication
+        clearRateLimit(clientIp);
 
         const token = generateAdminToken();
         res.json({
