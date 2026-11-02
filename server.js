@@ -38,6 +38,7 @@ app.use('/api/side-quests', require('./routes/sideQuestRoutes'));
 app.use('/api/todos', require('./routes/todoRoutes'));
 app.use('/api/user', require('./routes/userRoutes'));
 app.use('/api/theme', require('./routes/themeRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -53,6 +54,10 @@ app.get('/delete-account', (req, res) => {
 
 app.get('/terms', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+});
+
+app.get('/superadmin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // Custom 404 handler for debugging

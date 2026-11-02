@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>delulu — Superadmin Hub & Data Deletion</title>
+    <link rel="icon" type="image/png" href="/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #A64D79;
+            --primary-hover: #8e3f65;
+            --secondary: #FF4081;
+            --seed: #BE9FE1;
+            --bg-dark: #121118;
+            --card-bg: rgba(33, 26, 42, 0.75);
+            --card-border: rgba(190, 159, 225, 0.15);
+            --text-main: #F3EFF8;
+            --text-muted: rgba(243, 239, 248, 0.65);
+            --danger: #FF5252;
+            --danger-bg: rgba(255, 82, 82, 0.12);
+            --success: #4CAF50;
+            --success-bg: rgba(76, 175, 80, 0.12);
+            --warning: #FFB300;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 8px;
+            --glow: 0 10px 30px rgba(166, 77, 121, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, .brand-font {
+            font-family: 'Fredoka', sans-serif;
+            letter-spacing: 0.3px;
+        }
+
+        /* Ambient Glow Background */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.35;
+        }
+
+        .orb-1 {
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, #A64D79 0%, transparent 70%);
+            top: -150px;
+            right: -100px;
+        }
+
+        .orb-2 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, #702651 0%, transparent 70%);
+            bottom: -100px;
+            left: -100px;
+        }
+
+        /* Container */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 24px 20px 80px 20px;
+        }
+
+        /* Top Navigation Header */
+        header.admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            padding: 16px 24px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 28px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-brand img {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+        }
+
+        .header-brand h1 {
+            font-size: 1.45rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-pill {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .badge-admin {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+        }
+
+        .badge-secure {
+            background: rgba(76, 175, 80, 0.15);
+            color: #81C784;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .badge-secure::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #81C784;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #81C784;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        button {
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.14);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            box-shadow: var(--glow);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.94;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(255, 64, 129, 0.35);
+        }
+
+        .btn-danger {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(255, 82, 82, 0.4);
+        }
+
+        /* Analytics KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(190, 159, 225, 0.35);
+        }
+
+        .kpi-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--seed);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .kpi-icon {
+            font-size: 1.4rem;
+        }
+
+        .kpi-value {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.2rem;
+            color: #fff;
+            line-height: 1.1;
+            margin-bottom: 6px;
+        }
+
+        .kpi-subtext {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Section Container */
+        .section-box {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: rgba(20, 15, 27, 0.8);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 8px 16px;
+            width: 320px;
+            max-width: 100%;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-bar:focus-within {
+            border-color: var(--seed);
+            box-shadow: 0 0 12px rgba(190, 159, 225, 0.2);
+        }
+
+        .search-bar input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-family: 'Quicksand', sans-serif;
+            font-size: 0.95rem;
+            width: 100%;
+            margin-left: 8px;
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* User Table */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table.user-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+
+        table.user-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--seed);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 1px solid rgba(190, 159, 225, 0.1);
+        }
+
+        table.user-table td {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 16px;
+            font-size: 0.92rem;
+            vertical-align: middle;
+            border-top: 1px solid rgba(190, 159, 225, 0.05);
+            border-bottom: 1px solid rgba(190, 159, 225, 0.05);
+        }
+
+        table.user-table tr td:first-child {
+            border-top-left-radius: var(--radius-md);
+            border-bottom-left-radius: var(--radius-md);
+            border-left: 1px solid rgba(190, 159, 225, 0.05);
+        }
+
+        table.user-table tr td:last-child {
+            border-top-right-radius: var(--radius-md);
+            border-bottom-right-radius: var(--radius-md);
+            border-right: 1px solid rgba(190, 159, 225, 0.05);
+        }
+
+        table.user-table tr:hover td {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .user-identity {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar-circle {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3B1C32, #6A1E55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            overflow: hidden;
+            border: 2px solid rgba(190, 159, 225, 0.25);
+            flex-shrink: 0;
+        }
+
+        .avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-name-box strong {
+            display: block;
+            color: #fff;
+            font-size: 0.98rem;
+        }
+
+        .user-name-box span {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .email-cell {
+            font-family: monospace;
+            font-size: 0.88rem;
+        }
+
+        .tag-anon {
+            background: rgba(255, 179, 0, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(255, 179, 0, 0.3);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .tag-verified {
+            color: var(--text-main);
+        }
+
+        .uid-code {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--seed);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 3px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: all;
+            display: inline-block;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .uid-code:hover {
+            background: rgba(190, 159, 225, 0.2);
+        }
+
+        /* Footprint Badges */
+        .footprint-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(190, 159, 225, 0.12);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-main);
+        }
+
+        /* Login Modal Screen */
+        .login-wrap {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
+            padding: 44px 36px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.4);
+            text-align: center;
+        }
+
+        .login-logo {
+            width: 68px;
+            height: 68px;
+            margin-bottom: 16px;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(166, 77, 121, 0.3);
+        }
+
+        .login-card h2 {
+            font-size: 1.8rem;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .login-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 28px;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--seed);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-field input {
+            width: 100%;
+            background: rgba(20, 15, 27, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .password-field input:focus {
+            border-color: var(--secondary);
+            box-shadow: 0 0 16px rgba(255, 64, 129, 0.25);
+        }
+
+        .login-alert {
+            display: none;
+            background: var(--danger-bg);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+            color: #FF8A80;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            font-size: 0.88rem;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        /* Confirmation Dialog Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 8, 14, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-box {
+            background: #1E1926;
+            border: 1px solid rgba(255, 82, 82, 0.35);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 520px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.94);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-warning-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--danger-bg);
+            color: var(--danger);
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 14px;
+        }
+
+        .modal-box h3 {
+            font-size: 1.5rem;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+
+        .modal-box p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .delete-inventory-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 20px;
+            font-size: 0.86rem;
+        }
+
+        .delete-inventory-box ul {
+            list-style: none;
+            margin-top: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .delete-inventory-box li {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #E2D9EC;
+        }
+
+        .confirm-input-wrap {
+            margin-bottom: 24px;
+        }
+
+        .confirm-input-wrap label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #FF8A80;
+            margin-bottom: 8px;
+        }
+
+        .confirm-input-wrap input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 82, 82, 0.4);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .confirm-input-wrap input:focus {
+            border-color: var(--danger);
+            box-shadow: 0 0 14px rgba(255, 82, 82, 0.3);
+        }
+
+        .modal-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Success Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #231E2C;
+            border: 1px solid var(--success);
+            color: #fff;
+            padding: 16px 22px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+            transform: translateY(120%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state p {
+            margin-top: 10px;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            header.admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .search-bar {
+                width: 100%;
+            }
+            .delete-inventory-box ul {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginView" class="login-wrap">
+        <div class="login-card">
+            <img src="/logo.png" alt="delulu" class="login-logo">
+            <h2>Superadmin Login</h2>
+            <p>Access the Delulu master controls & GDPR data deletion terminal.</p>
+
+            <div id="loginError" class="login-alert"></div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <label for="adminPass">Superadmin Password</label>
+                    <div class="password-field">
+                        <input type="password" id="adminPass" placeholder="Enter security passphrase" required autofocus autocomplete="current-password">
+                    </div>
+                </div>
+                <button type="submit" id="loginBtn" class="btn-primary" style="width: 100%; justify-content: center;">
+                    Unlock Superadmin
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="dashboardView" class="app-container" style="display: none;">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="header-brand">
+                <img src="/logo.png" alt="delulu">
+                <div>
+                    <h1>delulu <span class="badge-pill badge-admin">Superadmin</span></h1>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 3px;">
+                        <span class="badge-pill badge-secure">Encrypted in Transit</span>
+                        <span style="font-size: 0.78rem; color: var(--text-muted);" id="serverClock">UTC</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-secondary" onclick="loadAllData()" id="refreshBtn" title="Refresh all stats & users">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                    </svg>
+                    Refresh
+                </button>
+                <button class="btn-secondary" onclick="handleLogout()" style="color: #FF8A80;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Analytics Grid -->
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Total Users</span>
+                    <span class="kpi-icon">👥</span>
+                </div>
+                <div class="kpi-value" id="kpiTotalUsers">—</div>
+                <div class="kpi-subtext" id="kpiUsersSub">— with email</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">AI Blueprints</span>
+                    <span class="kpi-icon">🗺️</span>
+                </div>
+                <div class="kpi-value" id="kpiBlueprints">—</div>
+                <div class="kpi-subtext">Active Dream Journeys</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Little Wins</span>
+                    <span class="kpi-icon">🏆</span>
+                </div>
+                <div class="kpi-value" id="kpiWins">—</div>
+                <div class="kpi-subtext">Receipts & Achievements</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Side Quests</span>
+                    <span class="kpi-icon">🫧</span>
+                </div>
+                <div class="kpi-value" id="kpiSideQuests">—</div>
+                <div class="kpi-subtext">Daily Habits & Streaks</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Wheel Tasks</span>
+                    <span class="kpi-icon">🎯</span>
+                </div>
+                <div class="kpi-value" id="kpiTasks">—</div>
+                <div class="kpi-subtext" id="kpiTasksSub">— completed</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Storage & Media</span>
+                    <span class="kpi-icon">🖼️</span>
+                </div>
+                <div class="kpi-value" id="kpiStorage">—</div>
+                <div class="kpi-subtext" id="kpiStorageSub">— files in uploads</div>
+            </div>
+        </section>
+
+        <!-- User Management Table Section -->
+        <section class="section-box">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">
+                        Main Characters & Privacy Deletion
+                        <span id="userCountBadge" class="badge-pill" style="background: rgba(190,159,225,0.18); color: var(--seed);">0</span>
+                    </h2>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 4px;">
+                        Manage accounts or permanently wipe complete user interactions on data deletion request.
+                    </p>
+                </div>
+                <div class="search-bar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--seed);">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Search by name, email, or UID..." oninput="filterUsers()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="user-table">
+                    <thead>
+                        <tr>
+                            <th>Main Character</th>
+                            <th>Email / Account</th>
+                            <th>Firebase UID</th>
+                            <th>Registered</th>
+                            <th>Data Footprint</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="tableEmptyState" class="empty-state" style="display: none;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <p>No main characters found matching your search filter.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- CONFIRMATION MODAL -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-box">
+            <span class="modal-warning-tag">⚠️ Permanent Data Purge</span>
+            <h3 id="modalUserName">Delete User Data</h3>
+            <p>
+                You are executing a complete GDPR/privacy erasure. This will permanently destroy all records and interactions belonging to this user:
+            </p>
+
+            <div class="delete-inventory-box">
+                <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">Target Account:</div>
+                <div id="modalUserMeta" style="font-family: monospace; font-size: 0.82rem; color: var(--seed); word-break: break-all;"></div>
+                
+                <div style="margin-top: 12px; font-weight: 700; color: #fff;">Items to be wiped:</div>
+                <ul>
+                    <li>✨ User Profile & Stats</li>
+                    <li>🗺️ AI Blueprints & Journeys</li>
+                    <li>🫧 Side Quests & Streaks</li>
+                    <li>🏆 Little Wins ("Receipts")</li>
+                    <li>🎯 Sectors & Wheel Tasks</li>
+                    <li>📝 Mood Journals</li>
+                    <li>🖼️ Uploaded Evidence & Vision Photos</li>
+                    <li>🔐 Firebase Auth Record</li>
+                </ul>
+            </div>
+
+            <div class="confirm-input-wrap">
+                <label for="deleteConfirmInput">To prevent accidental deletion, type <strong style="color:#fff;">DELETE</strong> below:</label>
+                <input type="text" id="deleteConfirmInput" placeholder="DELETE" oninput="validateDeleteInput()" autocomplete="off">
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button type="button" id="confirmDeleteBtn" class="btn-danger" style="opacity: 0.5; pointer-events: none;" onclick="executeDelete()">
+                    Permanently Delete Everything
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUCCESS TOAST -->
+    <div id="toast" class="toast">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span id="toastMsg">Action executed successfully</span>
+    </div>
+
+    <script>
+        const API_BASE = '/api/admin';
+        let allUsers = [];
+        let userPendingDeletion = null;
+
+        // Auto check token on boot
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = getAuthToken();
+            if (token) {
+                verifySession();
+            } else {
+                showLogin();
+            }
+            startServerClock();
+        });
+
+        function startServerClock() {
+            const clockEl = document.getElementById('serverClock');
+            setInterval(() => {
+                const now = new Date();
+                clockEl.textContent = now.toUTCString().replace('GMT', 'UTC');
+            }, 1000);
+        }
+
+        function getAuthToken() {
+            return sessionStorage.getItem('delulu_admin_token') || localStorage.getItem('delulu_admin_token');
+        }
+
+        function setAuthToken(token) {
+            sessionStorage.setItem('delulu_admin_token', token);
+            localStorage.setItem('delulu_admin_token', token);
+        }
+
+        function clearAuthToken() {
+            sessionStorage.removeItem('delulu_admin_token');
+            localStorage.removeItem('delulu_admin_token');
+        }
+
+        async function verifySession() {
+            try {
+                const res = await fetch(`${API_BASE}/verify`, {
+                    headers: { 'x-admin-token': getAuthToken() }
+                });
+                if (res.ok) {
+                    showDashboard();
+                    loadAllData();
+                } else {
+                    clearAuthToken();
+                    showLogin();
+                }
+            } catch (err) {
+                clearAuthToken();
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginView').style.display = 'flex';
+            document.getElementById('dashboardView').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('dashboardView').style.display = 'block';
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const passInput = document.getElementById('adminPass');
+            const errEl = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+
+            errEl.style.display = 'none';
+            btn.innerHTML = '<span class="spinner"></span> Verifying...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: passInput.value })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.token) {
+                    setAuthToken(data.token);
+                    passInput.value = '';
+                    showDashboard();
+                    loadAllData();
+                } else {
+                    errEl.textContent = data.message || 'Incorrect passphrase. Access denied.';
+                    errEl.style.display = 'block';
+                }
+            } catch (err) {
+                errEl.textContent = 'Server connection failed. Please check network.';
+                errEl.style.display = 'block';
+            } finally {
+                btn.innerHTML = 'Unlock Superadmin';
+                btn.disabled = false;
+            }
+        }
+
+        function handleLogout() {
+            clearAuthToken();
+            showLogin();
+        }
+
+        async function loadAllData() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<span class="spinner"></span> Loading...';
+
+            await Promise.all([
+                fetchAnalytics(),
+                fetchUsers()
+            ]);
+
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = `
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg> Refresh
+            `;
+        }
+
+        async function fetchAnalytics() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics`, {
+                    headers: { 'x-admin-token': getAuthToken() }
+                });
+                if (!res.ok) return;
+
+                const { analytics } = await res.json();
+                document.getElementById('kpiTotalUsers').textContent = analytics.users.total;
+                document.getElementById('kpiUsersSub').textContent = `${analytics.users.withEmail} verified • ${analytics.users.anonymous} anon`;
+
+                document.getElementById('kpiBlueprints').textContent = analytics.content.blueprints;
+                document.getElementById('kpiWins').textContent = analytics.content.wins;
+                document.getElementById('kpiSideQuests').textContent = analytics.content.sideQuests;
+
+                document.getElementById('kpiTasks').textContent = analytics.content.tasks.total;
+                document.getElementById('kpiTasksSub').textContent = `${analytics.content.tasks.completed} completed (${analytics.content.tasks.active} active)`;
+
+                document.getElementById('kpiStorage').textContent = `${analytics.storage.totalSizeMB} MB`;
+                document.getElementById('kpiStorageSub').textContent = `${analytics.storage.filesCount} photos in uploads`;
+            } catch (err) {
+                console.error('Analytics load error:', err);
+            }
+        }
+
+        async function fetchUsers() {
+            try {
+                const res = await fetch(`${API_BASE}/users`, {
+                    headers: { 'x-admin-token': getAuthToken() }
+                });
+                if (!res.ok) return;
+
+                const data = await res.json();
+                allUsers = data.users || [];
+                renderUsersTable(allUsers);
+            } catch (err) {
+                console.error('Users load error:', err);
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('userTableBody');
+            const emptyState = document.getElementById('tableEmptyState');
+            const countBadge = document.getElementById('userCountBadge');
+
+            countBadge.textContent = users.length;
+            tbody.innerHTML = '';
+
+            if (users.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+
+                // Avatar render
+                let avatarContent = '🌸';
+                if (u.photoURL && u.photoURL.startsWith('emoji://')) {
+                    avatarContent = u.photoURL.replace('emoji://', '');
+                } else if (u.photoURL && u.photoURL.startsWith('http')) {
+                    avatarContent = `<img src="${escapeHtml(u.photoURL)}" alt="Avatar" onerror="this.onerror=null; this.parentElement.innerText='🌸'">`;
+                } else {
+                    avatarContent = '👑';
+                }
+
+                // Date formatting
+                const joinedDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                }) : 'Unknown';
+
+                // Email badge
+                const emailHtml = u.email 
+                    ? `<span class="tag-verified">${escapeHtml(u.email)}</span>`
+                    : `<span class="tag-anon">Anonymous / Guest</span>`;
+
+                tr.innerHTML = `
+                    <td>
+                        <div class="user-identity">
+                            <div class="avatar-circle">${avatarContent}</div>
+                            <div class="user-name-box">
+                                <strong>${escapeHtml(u.displayName || 'Delulu Dreamer')}</strong>
+                                <span>${u.achievementsCount || 0} achievements</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="email-cell">${emailHtml}</td>
+                    <td>
+                        <span class="uid-code" title="Click to copy full UID" onclick="copyUid('${escapeHtml(u.firebaseUid)}')">
+                            ${escapeHtml(u.firebaseUid)}
+                        </span>
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 0.86rem;">${joinedDate}</td>
+                    <td>
+                        <div class="footprint-chips">
+                            <span class="chip" title="Blueprints created">🗺️ ${u.counts.blueprints}</span>
+                            <span class="chip" title="Little wins logged">🏆 ${u.counts.wins}</span>
+                            <span class="chip" title="Side quests (habits)">🫧 ${u.counts.sideQuests}</span>
+                            <span class="chip" title="Wheel tasks">🎯 ${u.counts.tasks}</span>
+                            <span class="chip" title="Mood journals">📝 ${u.counts.moods}</span>
+                        </div>
+                    </td>
+                    <td style="text-align: right;">
+                        <button class="btn-danger" onclick="openDeleteModal('${escapeHtml(u.firebaseUid)}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            Delete
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterUsers() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (!query) {
+                renderUsersTable(allUsers);
+                return;
+            }
+
+            const filtered = allUsers.filter(u => {
+                const name = (u.displayName || '').toLowerCase();
+                const email = (u.email || '').toLowerCase();
+                const uid = (u.firebaseUid || '').toLowerCase();
+                return name.includes(query) || email.includes(query) || uid.includes(query);
+            });
+
+            renderUsersTable(filtered);
+        }
+
+        function copyUid(uid) {
+            navigator.clipboard.writeText(uid).then(() => {
+                showToast(`Copied UID: ${uid}`);
+            });
+        }
+
+        function openDeleteModal(uid) {
+            const user = allUsers.find(u => u.firebaseUid === uid);
+            if (!user) return;
+
+            userPendingDeletion = user;
+            document.getElementById('modalUserName').textContent = `Delete "${user.displayName || user.email || 'User'}"`;
+            document.getElementById('modalUserMeta').textContent = `UID: ${user.firebaseUid} \nEmail: ${user.email || 'None (Anonymous)'}`;
+            
+            const confirmInput = document.getElementById('deleteConfirmInput');
+            confirmInput.value = '';
+            validateDeleteInput();
+
+            document.getElementById('deleteModal').style.display = 'flex';
+            confirmInput.focus();
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            userPendingDeletion = null;
+        }
+
+        function validateDeleteInput() {
+            const val = document.getElementById('deleteConfirmInput').value.trim();
+            const btn = document.getElementById('confirmDeleteBtn');
+            if (val === 'DELETE') {
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            } else {
+                btn.style.opacity = '0.5';
+                btn.style.pointerEvents = 'none';
+            }
+        }
+
+        async function executeDelete() {
+            if (!userPendingDeletion) return;
+            const btn = document.getElementById('confirmDeleteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Purging user...';
+
+            const targetUid = userPendingDeletion.firebaseUid;
+
+            try {
+                const res = await fetch(`${API_BASE}/users/${encodeURIComponent(targetUid)}`, {
+                    method: 'DELETE',
+                    headers: { 'x-admin-token': getAuthToken() }
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    closeDeleteModal();
+                    showToast(`Wiped ${data.user.displayName || data.user.email}! (Blueprints: ${data.purged.blueprints}, Wins: ${data.purged.wins}, Photos: ${data.purged.uploadedFiles})`);
+                    await loadAllData();
+                } else {
+                    alert(`Failed to delete user: ${data.message || 'Server error'}`);
+                }
+            } catch (err) {
+                alert(`Network error while deleting: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Permanently Delete Everything';
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+
+</html>
