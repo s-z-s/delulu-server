@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
 const admin = require('firebase-admin');
+const dotenv = require('dotenv');
 
 // Ensure Firebase is initialized
 require('../middleware/authMiddleware');
@@ -17,10 +18,15 @@ const Sector = require('../models/Sector');
 const Task = require('../models/Task');
 const SideQuest = require('../models/SideQuest');
 
-// Helper to sanitize passwords (strips whitespace, carriage returns, and quotes)
+// Helper to sanitize passwords (strips whitespace, carriage returns, quotes, and inline comments)
 function sanitizePassword(val) {
     if (!val || typeof val !== 'string') return '';
-    return val.trim().replace(/^["']|["']$/g, '').trim();
+    let s = val.replace(/\r/g, '').trim();
+    s = s.replace(/^["']|["']$/g, '').trim();
+    if (s.includes(' #')) {
+        s = s.split(' #')[0].trim();
+    }
+    return s;
 }
 
 // Secret for HMAC token signing
@@ -91,24 +97,44 @@ function safeStringMatch(a, b) {
 // @access  Public (Password protected)
 router.post('/login', (req, res) => {
     try {
+        // Dynamically re-read .env from disk so any password change or PM2 env cache is immediately synced
+        const envPath = path.join(__dirname, '..', '.env');
+        if (fs.existsSync(envPath)) {
+            try {
+                const envContent = fs.readFileSync(envPath, 'utf8');
+                const parsed = dotenv.parse(envContent);
+                if (parsed.ADMIN_PASSWORD) {
+                    process.env.ADMIN_PASSWORD = parsed.ADMIN_PASSWORD;
+                }
+                if (parsed.ADMIN_SECRET) {
+                    process.env.ADMIN_SECRET = parsed.ADMIN_SECRET;
+                }
+            } catch (envErr) {
+                console.warn('[Superadmin Login] Could not reload .env from disk:', envErr.message);
+            }
+        }
+
         const { password } = req.body;
         if (!password) {
             return res.status(400).json({ success: false, message: 'Password is required' });
         }
 
         const input = sanitizePassword(password);
-        const configured = sanitizePassword(process.env.ADMIN_PASSWORD) || 'delulu_superadmin_2026';
+        const configured = sanitizePassword(process.env.ADMIN_PASSWORD);
         const fallback = 'delulu_superadmin_2026';
 
-        // Check against configured password (or fallback)
-        let valid = safeStringMatch(input, configured);
-        
-        // Also allow default fallback in case env was not reloaded yet
-        if (!valid && configured !== fallback) {
-            valid = safeStringMatch(input, fallback);
+        // Check against configured password in .env
+        let valid = false;
+        if (configured && safeStringMatch(input, configured)) {
+            valid = true;
         }
 
-        console.log(`[Superadmin Login] Attempt with input length ${input.length}. Match: ${valid}`);
+        // Also check fallback
+        if (!valid && safeStringMatch(input, fallback)) {
+            valid = true;
+        }
+
+        console.log(`[Superadmin Login] Input len: ${input.length}, Configured len: ${configured ? configured.length : 0}, HasEnv: ${!!process.env.ADMIN_PASSWORD}, Match: ${valid}`);
 
         if (!valid) {
             return res.status(401).json({ 
